@@ -48,6 +48,29 @@
     &::placeholder
       color: var(--ink-4)
 
+    // O botão de limpar que o navegador desenha sozinho em `type=search` vem
+    // no azul do sistema e destoa de tudo. Ele sai, e no lugar entra o
+    // `.searchdialog__limpar`, que segue a paleta.
+    &::-webkit-search-cancel-button,
+    &::-webkit-search-decoration
+      -webkit-appearance: none
+      appearance: none
+
+// Nosso botão de limpar, com as cores do acervo.
+.searchdialog__limpar
+  flex: 0 0 auto
+  display: inline-grid
+  place-items: center
+  width: 1.75rem
+  height: 1.75rem
+  border-radius: var(--radius-m)
+  color: var(--ink-4)
+  transition: color 0.18s var(--ease), background-color 0.18s var(--ease)
+
+  &:hover
+    color: var(--accent-ink)
+    background: var(--accent-soft)
+
 .searchdialog__results
   overflow-y: auto
   padding: var(--space-2)
@@ -98,6 +121,13 @@
   display: flex
   gap: var(--space-4)
   flex-wrap: wrap
+
+  // Cada dica é ícone e texto na mesma linha; sem isto o ↵ quebra sozinho.
+  > span
+    display: inline-flex
+    align-items: center
+    gap: 0.3em
+    white-space: nowrap
 
 @keyframes fade-in
   from

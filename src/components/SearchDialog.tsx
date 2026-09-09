@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Fuse from 'fuse.js';
-import { CornerDownLeft, Search as SearchIcon } from 'lucide-react';
+import { CornerDownLeft, Search as SearchIcon, X } from 'lucide-react';
 import type { SearchRecord } from '@/lib/breach/types';
 
 interface Props {
@@ -21,6 +21,10 @@ export function SearchDialog({ records, open, onClose }: Props) {
   const [query, setQuery] = useState('');
   const [cursor, setCursor] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listaRef = useRef<HTMLUListElement>(null);
+  // O mouse também move o cursor; rolar por causa dele faria a lista fugir
+  // debaixo do ponteiro. Só a navegação por teclado rola.
+  const viaTeclado = useRef(false);
 
   const fuse = useMemo(
     () =>
@@ -48,7 +52,19 @@ export function SearchDialog({ records, open, onClose }: Props) {
 
   useEffect(() => {
     setCursor(0);
+    viaTeclado.current = false;
+    if (listaRef.current) listaRef.current.scrollTop = 0;
   }, [query]);
+
+  // Andar com as setas tem de trazer o resultado destacado para dentro da
+  // lista; sem isto o cursor desce sozinho e some por baixo da borda.
+  useEffect(() => {
+    if (!viaTeclado.current) return;
+    viaTeclado.current = false;
+    listaRef.current?.querySelector<HTMLElement>('[data-active="true"]')?.scrollIntoView({
+      block: 'nearest',
+    });
+  }, [cursor]);
 
   useEffect(() => {
     if (open) {
@@ -73,11 +89,13 @@ export function SearchDialog({ records, open, onClose }: Props) {
     }
     if (event.key === 'ArrowDown') {
       event.preventDefault();
+      viaTeclado.current = true;
       setCursor((value) => Math.min(value + 1, results.length - 1));
       return;
     }
     if (event.key === 'ArrowUp') {
       event.preventDefault();
+      viaTeclado.current = true;
       setCursor((value) => Math.max(value - 1, 0));
       return;
     }
@@ -109,12 +127,25 @@ export function SearchDialog({ records, open, onClose }: Props) {
             onChange={(event) => setQuery(event.target.value)}
             onKeyDown={onKeyDown}
           />
+          {query ? (
+            <button
+              type="button"
+              className="searchdialog__limpar"
+              aria-label="Limpar a busca"
+              onClick={() => {
+                setQuery('');
+                inputRef.current?.focus();
+              }}
+            >
+              <X size={16} aria-hidden="true" />
+            </button>
+          ) : null}
         </div>
 
         {results.length === 0 ? (
           <p className="searchdialog__foot">Nada no acervo corresponde a “{query}”.</p>
         ) : (
-          <ul className="searchdialog__results">
+          <ul className="searchdialog__results" ref={listaRef}>
             {results.map((record, index) => (
               <li key={record.href}>
                 <a

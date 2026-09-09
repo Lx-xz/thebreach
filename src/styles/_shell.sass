@@ -157,9 +157,46 @@
     font-size: var(--step--1)
     letter-spacing: 0.1em
 
-@media (max-width: 23.98rem)
-  .tool--repo
-    display: none
+// --- Lateral direita -----------------------------------------------------
+// Duas laterais, como no GitHub: à esquerda o acervo, à direita o aparelho.
+// Tema e repositório moram aqui; o cabeçalho fica com a marca e a busca.
+// ------------------------------------------------------------------------
+
+.utilrail
+  position: fixed
+  top: 0
+  right: 0
+  bottom: 0
+  // Abaixo do cabeçalho (40) e do véu da gaveta (50): a faixa é moldura, não
+  // camada por cima.
+  z-index: 30
+  width: var(--util-w)
+  // Começa logo abaixo do cabeçalho — que tem 1rem de folga em cima e embaixo
+  // em volta de um botão de 2.25rem.
+  padding: 4.55rem var(--space-1) var(--space-4)
+  display: flex
+  flex-direction: column
+  align-items: center
+  gap: var(--space-2)
+  border-left: 1px solid var(--border)
+  background: var(--bg-app)
+
+.utilrail__tool
+  display: inline-grid
+  place-items: center
+  flex: 0 0 auto
+  width: 2.1rem
+  height: 2.1rem
+  border-radius: var(--radius-m)
+  border: 1px solid transparent
+  color: var(--fg-muted)
+  text-decoration: none
+  transition: background-color 0.2s var(--ease), color 0.2s var(--ease), border-color 0.2s var(--ease)
+
+  &:hover
+    background: var(--accent-soft)
+    border-color: var(--border)
+    color: var(--accent-ink)
 
 // --- Corpo ---------------------------------------------------------------
 
@@ -172,6 +209,11 @@
   display: grid
   grid-template-columns: minmax(0, 1fr)
   align-items: start
+
+  // No celular a lateral direita já toma a sua faixa; a margem devolve parte
+  // dela ao texto.
+  @include until(34rem)
+    padding-inline: var(--space-4)
 
 .main
   min-width: 0
@@ -282,11 +324,44 @@
   display: flex
   align-items: center
   gap: 0.15rem
+  border-radius: var(--radius-m)
+  padding-right: var(--space-2)
+  transition: background-color 0.18s var(--ease)
 
   > .railnav__item,
   > .railnav__sublink
     flex: 1 1 auto
     min-width: 0
+
+  &:hover
+    background: color-mix(in srgb, var(--accent-soft) 55%, transparent)
+
+  // A página aberta é a linha inteira acesa — chave, nome e contagem. O filete
+  // que ficava entre a seta e o nome marcava só a categoria, e sumia assim que
+  // se entrava num documento dela.
+  &[data-estado='atual']
+    background: var(--accent-soft)
+
+    .railnav__item,
+    .railnav__sublink
+      color: var(--accent-ink)
+
+    .railnav__num,
+    .railnav__count,
+    .railnav__chave
+      color: var(--accent-ink)
+
+  // Galho que contém a página: o nome ganha peso, sem roubar o destaque de
+  // quem é a página.
+  &[data-estado='caminho']
+    .railnav__item,
+    .railnav__sublink
+      color: var(--fg)
+
+// …e o fio do galho aberto acende até onde a página está, para o olho seguir
+// o caminho de volta.
+.railnav__linha[data-estado='caminho'] + .railnav__sub
+  border-left-color: color-mix(in srgb, var(--accent) 55%, transparent)
 
 .railnav__chave
   flex: 0 0 auto
@@ -316,8 +391,7 @@
   display: flex
   align-items: center
   gap: var(--space-3)
-  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3)
-  border-left: 2px solid transparent
+  padding: var(--space-2) var(--space-1) var(--space-2) var(--space-2)
   font-family: var(--font-heading)
   font-variant: small-caps
   font-size: var(--step-1)
@@ -326,15 +400,10 @@
   line-height: 1.3
   color: var(--ink-2)
   text-decoration: none
-  transition: color 0.18s var(--ease), border-color 0.18s var(--ease)
+  transition: color 0.18s var(--ease)
 
   &:hover
     color: var(--fg)
-    border-left-color: var(--line-strong)
-
-  &[aria-current='page']
-    color: var(--accent-ink)
-    border-left-color: var(--accent)
 
 .railnav__num
   font-family: var(--font-num)
@@ -358,6 +427,7 @@
   display: flex
   flex-direction: column
   border-left: 1px solid var(--border)
+  transition: border-color 0.18s var(--ease)
 
 // Espécies debaixo da classe: recuo menor, para o segundo nível não empurrar
 // o texto até a borda da barra.
@@ -366,16 +436,14 @@
   padding-left: 1.45rem
 
 .railnav__sublink
-  padding: 0.3rem var(--space-3)
+  padding: 0.3rem var(--space-1) 0.3rem var(--space-2)
   font-size: var(--step--1)
   color: var(--fg-muted)
   text-decoration: none
+  transition: color 0.18s var(--ease)
 
   &:hover
     color: var(--fg)
-
-  &[aria-current='page']
-    color: var(--accent-ink)
 
 .scrim
   position: fixed
@@ -404,8 +472,9 @@
       width: auto
       max-height: calc(100dvh - 8rem)
       // Menos ar no topo: com a árvore recolhida, o que decide se a lateral
-      // rola é justamente esse espaço morto.
-      padding: var(--space-5) var(--space-4) var(--space-5) 0
+      // rola é justamente esse espaço morto. Embaixo, a folga é a altura do
+      // esmaecer — ele tem de cair no vazio, não sobre o último item.
+      padding: var(--space-5) var(--space-4) 2.5rem 0
       background: transparent
       border-right: 0
       box-shadow: none

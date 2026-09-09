@@ -200,7 +200,9 @@ a.chip:hover
     &::-webkit-scrollbar
       display: none
     margin: 0
-    padding: 0
+    // A folga embaixo é o que o esmaecer come. Sem ela o degradê cai em cima
+    // do último item do sumário e ele parece apagado.
+    padding: 0 0 2rem
     border: 0
 
   .toc__list

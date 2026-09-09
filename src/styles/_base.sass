@@ -61,6 +61,9 @@ html
 
 body
   margin: 0
+  // Espaço reservado para a lateral direita, que é fixa: assim ela nunca cobre
+  // o texto, e cabeçalho, corpo e rodapé param todos na mesma borda.
+  padding-right: var(--util-w)
   min-height: 100dvh
   background: var(--bg-app)
   color: var(--fg)

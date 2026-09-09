@@ -41,6 +41,20 @@ function ancestrais(pathname: string): string[] {
 }
 
 /**
+ * Onde a linha da árvore está em relação à página aberta: ela mesma, ou um
+ * galho que contém a página. Marcar só a igualdade exata deixava a árvore muda
+ * dentro de qualquer subpágina.
+ */
+type Estado = 'atual' | 'caminho' | undefined;
+
+function estadoDe(pathname: string, href: string): Estado {
+  const aqui = pathname.replace(/\/+$/, '');
+  if (aqui === href) return 'atual';
+  if (aqui.startsWith(`${href}/`)) return 'caminho';
+  return undefined;
+}
+
+/**
  * A chave que abre e fecha um galho.
  *
  * É botão separado do link de propósito: o nome leva ao documento, a chave só
@@ -93,9 +107,10 @@ function NavDocs({
         const docHref = `${base}/${doc.slug}`;
         const temFilhos = doc.children.length > 0;
         const aberto = abertos.has(docHref);
+        const estado = estadoDe(pathname, docHref);
         return (
           <li key={doc.slug}>
-            <span className="railnav__linha">
+            <span className="railnav__linha" data-estado={estado}>
               {temFilhos ? (
                 <Chave aberto={aberto} rotulo={doc.title} alternar={() => alternar(docHref)} />
               ) : (
@@ -104,7 +119,7 @@ function NavDocs({
               <Link
                 className="railnav__sublink"
                 href={docHref}
-                aria-current={pathname === docHref || pathname === `${docHref}/` ? 'page' : undefined}
+                aria-current={estado === 'atual' ? 'page' : undefined}
               >
                 {doc.title}
               </Link>
@@ -229,9 +244,6 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
-  const isActive = (href: string): boolean =>
-    pathname === href || pathname === `${href}/` || pathname.startsWith(`${href}/`);
-
   // Fixada, o botão do cabeçalho recolhe; solta, abre e fecha a gaveta.
   const toggleNav = (): void => {
     if (railFixed) {
@@ -275,19 +287,6 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
             </span>
           </Link>
 
-          <nav className="mainnav" aria-label="Seções do site">
-            {MAIN_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                className="mainnav__link"
-                href={link.href}
-                aria-current={isActive(link.href) ? 'page' : undefined}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
-
           <div className="tools">
             <button
               type="button"
@@ -299,26 +298,34 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
               <span>Buscar</span>
               <kbd>/</kbd>
             </button>
-            <button
-              type="button"
-              className="tool"
-              onClick={toggleTheme}
-              aria-label={theme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'}
-            >
-              {theme === 'dark' ? <Sun size={18} aria-hidden="true" /> : <Moon size={18} aria-hidden="true" />}
-            </button>
-            <a
-              className="tool tool--repo"
-              href={repoUrl}
-              target="_blank"
-              rel="noreferrer noopener"
-              aria-label="Ver o acervo no GitHub"
-            >
-              <Github size={18} aria-hidden="true" />
-            </a>
           </div>
         </div>
       </header>
+
+      {/* A segunda lateral. A da esquerda é o acervo; esta é o aparelho — tema
+          e repositório. Os três links de meta saíram daqui de cima porque já
+          estão na navegação, e repetidos só faziam ruído. */}
+      <aside className="utilrail" aria-label="Ferramentas do site">
+        <button
+          type="button"
+          className="utilrail__tool"
+          onClick={toggleTheme}
+          aria-label={theme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'}
+          title={theme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'}
+        >
+          {theme === 'dark' ? <Sun size={18} aria-hidden="true" /> : <Moon size={18} aria-hidden="true" />}
+        </button>
+        <a
+          className="utilrail__tool"
+          href={repoUrl}
+          target="_blank"
+          rel="noreferrer noopener"
+          aria-label="Ver o acervo no GitHub"
+          title="Ver o acervo no GitHub"
+        >
+          <Github size={18} aria-hidden="true" />
+        </a>
+      </aside>
 
       <div className="frame">
         <aside className="railnav" data-open={drawer} aria-label="Categorias do acervo">
@@ -353,9 +360,10 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
                 const href = `/c/${category.slug}`;
                 const temDocs = category.docs.length > 0;
                 const aberto = abertos.has(href);
+                const estado = estadoDe(pathname, href);
                 return (
                   <li key={category.slug}>
-                    <span className="railnav__linha">
+                    <span className="railnav__linha" data-estado={estado}>
                       {temDocs ? (
                         <Chave
                           aberto={aberto}
@@ -368,7 +376,7 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
                       <Link
                         className="railnav__item"
                         href={href}
-                        aria-current={pathname === href || pathname === `${href}/` ? 'page' : undefined}
+                        aria-current={estado === 'atual' ? 'page' : undefined}
                       >
                         <span className="railnav__num">{category.number}</span>
                         <span>{category.title}</span>
@@ -395,15 +403,15 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
             <ul className="railnav__list">
               {MAIN_LINKS.map((link) => (
                 <li key={link.href}>
-                  <span className="railnav__linha">
-                  <span className="railnav__chave railnav__chave--vazia" aria-hidden="true" />
-                  <Link
-                    className="railnav__item"
-                    href={link.href}
-                    aria-current={isActive(link.href) ? 'page' : undefined}
-                  >
-                    <span>{link.label}</span>
-                  </Link>
+                  <span className="railnav__linha" data-estado={estadoDe(pathname, link.href)}>
+                    <span className="railnav__chave railnav__chave--vazia" aria-hidden="true" />
+                    <Link
+                      className="railnav__item"
+                      href={link.href}
+                      aria-current={estadoDe(pathname, link.href) === 'atual' ? 'page' : undefined}
+                    >
+                      <span>{link.label}</span>
+                    </Link>
                   </span>
                 </li>
               ))}
