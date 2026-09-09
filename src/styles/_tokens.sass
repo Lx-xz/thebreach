@@ -117,11 +117,12 @@
   // leitura se centra no que sobra. Com um teto, a lateral direita — que é
   // fixa na janela — ficava desalinhada de todo o resto.
   --page-max: none
-  --sidebar-w: 15.5rem
-  // Lateral direita, recolhida e aberta. O espaço dela é reservado no `body`,
-  // para a faixa fixa nunca cobrir o texto.
-  --util-w: 2.9rem
-  --util-w-open: 11.5rem
+  // Largura única da navegação da esquerda: a mesma como gaveta e como coluna
+  // fixada, para fixar não mudar nem o tamanho nem o lugar dela.
+  --sidebar-w: min(21rem, 86vw)
+  // Lateral direita: só existe aberta, então tem uma largura só. Como a
+  // esquerda, é gaveta — nada de espaço reservado enquanto está fechada.
+  --util-w: min(19rem, 86vw)
   --toc-w: 14rem
   // Largura da coluna de leitura, independente da barra lateral. Cresce em
   // tela larga para o texto não ficar ilhado no meio de muito branco, mas com

@@ -299,6 +299,15 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
               <span>Buscar</span>
               <kbd>/</kbd>
             </button>
+            <button
+              type="button"
+              className="tool tool--tools"
+              onClick={toggleTools}
+              aria-label={tools === 'open' ? 'Fechar as ferramentas' : 'Abrir as ferramentas'}
+              aria-expanded={tools === 'open'}
+            >
+              <PanelRight size={19} aria-hidden="true" />
+            </button>
           </div>
         </div>
       </header>
@@ -441,6 +450,15 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
 
         {drawer ? (
           <button type="button" className="scrim" aria-label="Fechar a navegação" onClick={() => setDrawer(false)} />
+        ) : null}
+
+        {tools === 'open' ? (
+          <button
+            type="button"
+            className="scrim"
+            aria-label="Fechar as ferramentas"
+            onClick={toggleTools}
+          />
         ) : null}
 
         <main className="main" id="conteudo">

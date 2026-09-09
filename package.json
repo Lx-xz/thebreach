@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "imagens": "node scripts/baixar-imagens.mjs"
+    "imagens": "node --env-file-if-exists=.env.local scripts/baixar-imagens.mjs"
   },
   "dependencies": {
     "fuse.js": "^7.1.0",

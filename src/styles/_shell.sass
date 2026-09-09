@@ -8,6 +8,9 @@
   min-height: 100dvh
   display: flex
   flex-direction: column
+  // Fixar a navegação empurra tudo para a direita; a transição faz o
+  // cabeçalho e o conteúdo encolherem em vez de saltarem.
+  transition: padding-left 0.3s var(--ease)
 
 // --- Cabeçalho -----------------------------------------------------------
 
@@ -23,22 +26,29 @@
   max-width: var(--page-max)
   margin: 0 auto
   padding: var(--space-4) var(--space-5)
-  display: flex
+  // Três faixas: controle à esquerda, marca centrada, ferramentas à direita.
+  // As colunas laterais têm o mesmo peso, então a marca fica no meio de fato,
+  // não só entre os dois grupos.
+  display: grid
+  grid-template-columns: 1fr auto 1fr
   align-items: center
-  gap: var(--space-5)
+  gap: var(--space-4)
 
-  // Em telas estreitas a marca cede espaço às ferramentas, nunca o contrário.
   @include until(34rem)
     gap: var(--space-3)
     padding-inline: var(--space-4)
 
+.masthead__inner > .tool--nav
+  justify-self: start
+
 .brand
   display: inline-flex
   align-items: center
+  justify-self: center
   gap: var(--space-3)
   min-width: 0
+  max-width: 100%
   text-decoration: none
-  flex: 0 1 auto
 
 .brand__mark
   display: grid
@@ -97,12 +107,8 @@
 .tools
   display: flex
   align-items: center
-  flex: 0 0 auto
+  justify-self: end
   gap: var(--space-2)
-  margin-inline-start: auto
-
-  .mainnav + &
-    margin-inline-start: var(--space-3)
 
   @include until(34rem)
     gap: var(--space-1)
@@ -158,47 +164,52 @@
     letter-spacing: 0.1em
 
 // --- Lateral direita -----------------------------------------------------
-// Duas laterais, como no GitHub: à esquerda o acervo, à direita o aparelho.
-// Tema e repositório moram aqui; o cabeçalho fica com a marca e a busca.
+// Gaveta, como a da esquerda: fora da tela e sem deixar rastro enquanto
+// fechada, entra por cima do conteúdo quando aberta. Guarda o aparelho do
+// site — tema e repositório —; o cabeçalho fica com a marca e a busca.
 // ------------------------------------------------------------------------
 
 .utilrail
   position: fixed
-  top: 0
-  right: 0
-  bottom: 0
-  // Abaixo do cabeçalho (40) e do véu da gaveta (50): a faixa é moldura, não
-  // camada por cima.
-  z-index: 30
+  inset: 0 0 0 auto
+  z-index: 60
   width: var(--util-w)
-  // Começa logo abaixo do cabeçalho — que tem 1rem de folga em cima e embaixo
-  // em volta de um botão de 2.25rem.
-  padding: 4.55rem var(--space-1) var(--space-4)
+  padding: var(--space-4) var(--space-5) var(--space-7)
   display: flex
   flex-direction: column
   align-items: stretch
   gap: var(--space-1)
   border-left: 1px solid var(--border)
-  background: var(--bg-app)
-  overflow: hidden
-  transition: width 0.3s var(--ease), padding 0.3s var(--ease)
+  background: var(--bg-surface)
+  box-shadow: var(--shadow-l)
+  overflow-y: auto
+  scrollbar-width: none
+  transform: translateX(102%)
+  transition: transform 0.3s var(--ease)
 
-// O cabeçalho da faixa, espelhando o da esquerda: rótulo à esquerda, controle à
-// direita. Recolhida, sobra só a chave, centrada — e é por ela que se abre.
+  &::-webkit-scrollbar
+    display: none
+
+:root[data-tools='open'] .utilrail
+  transform: none
+
+// Cabeçalho da gaveta, espelhando o da esquerda: rótulo à esquerda, a chave
+// que fecha à direita.
 .utilrail__bar
   display: flex
   align-items: center
-  justify-content: center
   gap: var(--space-2)
   flex: 0 0 auto
-  margin-bottom: var(--space-3)
+  margin-bottom: var(--space-5)
+  padding-bottom: var(--space-3)
+  border-bottom: 1px solid var(--border)
 
 .utilrail__chave
   display: inline-grid
   place-items: center
   flex: 0 0 auto
-  width: 2.1rem
-  height: 2.1rem
+  width: 1.9rem
+  height: 1.9rem
   border-radius: var(--radius-m)
   border: 1px solid transparent
   color: var(--ink-4)
@@ -209,26 +220,26 @@
     border-color: var(--border)
     color: var(--accent-ink)
 
-// Rótulo da seção: só existe com a faixa aberta.
 .utilrail__label
-  display: none
   font-family: var(--font-sans)
-  font-size: var(--step--2)
+  font-size: var(--step--1)
   text-transform: uppercase
   letter-spacing: 0.12em
   white-space: nowrap
   color: var(--ink-4)
   margin: 0
   margin-inline-end: auto
-  padding-inline-start: var(--space-2)
 
 .utilrail__tool
   display: flex
   align-items: center
-  justify-content: center
   gap: var(--space-3)
   flex: 0 0 auto
   height: 2.1rem
+  padding-inline: var(--space-2)
+  // O <button> do tema traz text-align: center da UA; sem isto o rótulo dele
+  // fica centrado e o do link do GitHub, não.
+  text-align: start
   border-radius: var(--radius-m)
   border: 1px solid transparent
   color: var(--fg-muted)
@@ -244,60 +255,10 @@
     flex: 0 0 auto
 
 .utilrail__nome
-  display: none
   flex: 1 1 auto
   min-width: 0
   font-size: var(--step--1)
   white-space: nowrap
-
-// Aberta: a faixa vira painel e os rótulos aparecem ao lado dos ícones.
-:root[data-tools='open']
-  --util-w: var(--util-w-open)
-
-  .utilrail
-    padding-inline: var(--space-3)
-
-  .utilrail__bar
-    padding-bottom: var(--space-3)
-    border-bottom: 1px solid var(--border)
-
-  .utilrail__label
-    display: block
-
-  .utilrail__tool
-    justify-content: flex-start
-    padding-inline: var(--space-2)
-
-  .utilrail__nome
-    display: block
-
-// Onde a janela é estreita, abrir o painel comeria o texto — num telefone de
-// 390px sobrariam 164px de coluna. Ali a faixa é sempre só os ícones, e a
-// chave sai de cena, como o alfinete da lateral esquerda faz.
-@include until(48rem)
-  :root[data-tools='open']
-    --util-w: 2.9rem
-
-    .utilrail
-      padding-inline: var(--space-1)
-
-    .utilrail__bar
-      padding-bottom: 0
-      border-bottom: 0
-
-    .utilrail__label,
-    .utilrail__nome
-      display: none
-
-    .utilrail__tool
-      justify-content: center
-      padding-inline: 0
-
-  .utilrail__chave
-    display: none
-
-  .utilrail__bar
-    margin-bottom: 0
 
 // --- Corpo ---------------------------------------------------------------
 
@@ -324,16 +285,17 @@
   padding-block: var(--space-7) var(--space-8)
 
 // --- Barra lateral -------------------------------------------------------
-// Por padrão ela é uma gaveta: fica fora da tela e entra por cima do
-// conteúdo. Fixada (data-nav="pinned") e em tela larga, passa a ocupar
-// coluna própria e acompanha a rolagem.
+// É sempre a mesma gaveta, fixa na borda esquerda da janela: fora da tela e
+// invisível quando fechada, entra quando aberta. Fixada (data-nav="pinned")
+// e em tela larga ela fica parada, e o resto da página abre espaço ao lado
+// em vez de deixá-la cobrir o conteúdo.
 // ------------------------------------------------------------------------
 
 .railnav
   position: fixed
   inset: 0 auto 0 0
   z-index: 60
-  width: min(21rem, 86vw)
+  width: var(--sidebar-w)
   max-height: none
   padding: var(--space-4) var(--space-5) var(--space-7)
   overflow-y: auto
@@ -555,34 +517,18 @@
   background: rgba(20, 16, 12, 0.4)
   backdrop-filter: blur(2px)
 
-// Fixada em tela larga: coluna própria, sem sombra e sem cobrir nada.
+// Fixada em tela larga: a navegação fica exatamente onde a gaveta abre —
+// mesma largura, encostada na borda esquerda da janela —, só que em vez de
+// cobrir o conteúdo ela empurra o cabeçalho, o corpo e o rodapé para a
+// direita, que encolhem para caber ao lado.
 :root[data-nav='pinned']
   @include from(72rem)
-    .frame
-      grid-template-columns: var(--sidebar-w) minmax(0, 1fr)
-      gap: var(--space-7)
-
-    // Sem teto de largura, o que sobra à direita da lateral pode ser bem maior
-    // que a coluna de leitura. Centrar reparte essa folga em vez de deixá-la
-    // toda de um lado.
-    .main
-      margin-inline: auto
+    .app
+      padding-left: var(--sidebar-w)
 
     .railnav
-      position: sticky
-      inset: auto
-      top: 5.6rem
-      z-index: 1
-      width: auto
-      max-height: calc(100dvh - 8rem)
-      // Menos ar no topo: com a árvore recolhida, o que decide se a lateral
-      // rola é justamente esse espaço morto. Embaixo, a folga é a altura do
-      // esmaecer — ele tem de cair no vazio, não sobre o último item.
-      padding: var(--space-5) var(--space-4) 2.5rem 0
-      background: transparent
-      border-right: 0
-      box-shadow: none
       transform: none
+      box-shadow: none
 
     .railnav__close
       display: none
