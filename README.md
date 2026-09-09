@@ -98,11 +98,9 @@ que estiver sob `imagens/` para `public/acervo/`, e é de lá que o site serve.
 ### Tirando o papel das aquarelas
 
 As aquarelas geradas vêm com o papel do gerador, que quase nunca bate com o
-papel da página. `ferramentas/aquarela.py` desfaz essa mistura:
-
-```bash
-python3 ferramentas/aquarela.py capa.jpg --aparar
-```
+papel da página. Quem desfaz essa mistura é a **[aquarelapy]**, que vive em
+repositório próprio — como página, para acertar os parâmetros vendo o resultado,
+e como linha de comando, para lotes.
 
 Não é recorte de fundo. Uma aquarela é pigmento translúcido *sobre* papel, e
 recortar por semelhança de cor destrói justamente as aguadas claras. A
@@ -111,14 +109,12 @@ estima a cobertura pelo canal que mais escureceu em relação ao papel e recuper
 o pigmento. Sai um PNG com transparência real: sobre qualquer fundo, a tinta se
 comporta como se comportaria sobre aquele papel.
 
-A cor do papel é medida nas bordas da imagem; `--papel '#fcf9ed'` força um
-valor. `--ganho` acima de 1 deixa a tinta mais densa, `--limpar` define abaixo
-de que cobertura o pixel vira transparente puro.
-
 O limite é físico, não da ferramenta: aquarela sobre fundo escuro fica opaca,
 porque tinta translúcida precisa de papel claro por baixo. Por isso, no tema
 escuro, as ilustrações do conteúdo recebem um passe-partout de papel (`--mat`),
 como uma estampa colada na página.
+
+[aquarelapy]: https://github.com/Lx-xz/aquarelapy
 
 ---
 
