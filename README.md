@@ -1,4 +1,4 @@
-# Compêndio Breach — site
+# Compêndio Breach
 
 Representação visual do acervo em [`Lx-xz/breach`](https://github.com/Lx-xz/breach).
 
