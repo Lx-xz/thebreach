@@ -81,10 +81,15 @@ async function request(url: string, accept?: string): Promise<string> {
 
 let treeCache: Promise<string[]> | null = null;
 
-/** Todos os caminhos `.md` do acervo, em ordem alfabética. */
-export function listMarkdownFiles(): Promise<string[]> {
+/** Todos os arquivos do acervo, em ordem alfabética. */
+export function listRepoFiles(): Promise<string[]> {
   treeCache ??= usingLocal ? listLocal() : listRemote();
   return treeCache;
+}
+
+/** Apenas os documentos. */
+export async function listMarkdownFiles(): Promise<string[]> {
+  return (await listRepoFiles()).filter((file) => file.endsWith('.md'));
 }
 
 async function listLocal(): Promise<string[]> {
@@ -96,7 +101,7 @@ async function listLocal(): Promise<string[]> {
       const rel = dir ? `${dir}/${entry.name}` : entry.name;
       if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
       if (entry.isDirectory()) await walk(rel);
-      else if (entry.name.endsWith('.md')) found.push(rel);
+      else found.push(rel);
     }
   };
   await walk('');
@@ -112,7 +117,7 @@ async function listRemote(): Promise<string[]> {
   const url = `https://api.github.com/repos/${SOURCE.owner}/${SOURCE.repo}/git/trees/${SOURCE.ref}?recursive=1`;
   const payload = JSON.parse(await request(url)) as GitTreeResponse;
   const files = (payload.tree ?? [])
-    .filter((node) => node.type === 'blob' && node.path.endsWith('.md'))
+    .filter((node) => node.type === 'blob')
     .map((node) => node.path)
     .sort();
   if (files.length === 0) {

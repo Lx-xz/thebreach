@@ -314,3 +314,19 @@ a.card:hover, a.card:focus-visible
   background: var(--mat)
   padding: var(--space-4)
   box-shadow: var(--shadow-s)
+
+// Abertura ilustrada. A aquarela já vem sem papel, então assenta direto sobre
+// o fundo da página; no tema escuro ela recebe o mesmo passe-partout.
+.hero
+  margin: 0 0 var(--space-7)
+
+.hero__art
+  display: block
+  width: 100%
+  height: auto
+
+[data-theme='dark'] .hero__art
+  background: var(--mat)
+  padding: var(--space-4)
+  border-radius: var(--radius-m)
+  box-shadow: var(--shadow-s)

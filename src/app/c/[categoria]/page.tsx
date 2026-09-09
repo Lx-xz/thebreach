@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { FolderOpen, ScrollText } from 'lucide-react';
 import { getCategories, getCategory } from '@/lib/breach/api';
-import { Chip, Crumbs, DocCard, PageHead } from '@/components/content';
+import { Chip, Crumbs, DocCard, Hero, PageHead } from '@/components/content';
 
 type Params = { categoria: string };
 
@@ -25,6 +25,7 @@ export default async function CategoryPage({ params }: { params: Promise<Params>
 
   return (
     <div className="stack">
+      {category.hero ? <Hero src={category.hero} alt={`Ilustração — ${category.title}`} /> : null}
       <div>
         <Crumbs trail={[{ href: '/', label: 'Compêndio' }, { label: category.title }]} />
         <PageHead eyebrow={`Categoria ${category.number}`} title={category.title} lede={category.description}>

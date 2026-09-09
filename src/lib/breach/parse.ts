@@ -190,6 +190,8 @@ function nest(sections: DocSection[]): DocSection[] {
 }
 
 function kindFor(filePath: string): DocKind {
+  // README da raiz: é o texto da página inicial, não uma entrada do acervo.
+  if (!filePath.includes('/')) return 'meta';
   if (filePath.startsWith('00-meta/')) return 'meta';
   if (filePath.endsWith('/README.md')) return 'indice-categoria';
   if (filePath.startsWith('09-')) return 'narrativa';
@@ -252,6 +254,8 @@ export async function parseDocument(filePath: string, markdown: string): Promise
     plain: `${introPlain} ${toPlainText(bodyMarkdown)}`.trim(),
     githubUrl: githubUrlFor(filePath),
     updatedAt: header.ultimaAtualizacao ?? header.registradaEm,
+    // Preenchido em api.ts, que conhece a lista de arquivos do acervo.
+    hero: null,
   };
 }
 

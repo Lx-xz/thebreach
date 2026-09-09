@@ -20,6 +20,7 @@ import { toString as hastToString } from 'hast-util-to-string';
 import type { Element, Root, RootContent } from 'hast';
 
 import { MARKERS, parseMarkerToken } from './markers';
+import { urlDaImagem } from './imagens';
 import { hrefForPath, looksLikeDocPath, withBase } from './slug';
 
 function textNode(value: string): RootContent {
@@ -69,6 +70,18 @@ function rehypeMarkers() {
 function rehypeDocLinks() {
   return (tree: Root): void => {
     visit(tree, 'element', (node: Element, indexInParent, parent) => {
+      if (node.tagName === 'img') {
+        const src = typeof node.properties?.src === 'string' ? node.properties.src : null;
+        if (!src || /^(https?:|data:)/i.test(src)) return;
+        // As ilustrações são referidas a partir da raiz do acervo. Caminhos
+        // relativos ao documento (`../imagens/…`) chegam no mesmo lugar.
+        const noAcervo = src.replace(/^\.\//, '').replace(/^(\.\.\/)+/, '').replace(/^\//, '');
+        node.properties.src = urlDaImagem(noAcervo);
+        node.properties.loading = 'lazy';
+        node.properties.decoding = 'async';
+        return;
+      }
+
       if (node.tagName === 'a') {
         const href = typeof node.properties?.href === 'string' ? node.properties.href : null;
         if (!href) return;
@@ -120,6 +133,28 @@ function rehypeTableWrapper() {
   };
 }
 
+/** Imagem sozinha no parágrafo vira figura, com o texto alternativo por legenda. */
+function rehypeFiguras() {
+  return (tree: Root): void => {
+    visit(tree, 'element', (node: Element, indexInParent, parent) => {
+      if (node.tagName !== 'p' || !parent || indexInParent === undefined) return;
+      const filhos = node.children.filter(
+        (filho) => filho.type !== 'text' || filho.value.trim() !== '',
+      );
+      if (filhos.length !== 1) return;
+      const imagem = filhos[0];
+      if (imagem.type !== 'element' || imagem.tagName !== 'img') return;
+
+      const legenda = typeof imagem.properties?.alt === 'string' ? imagem.properties.alt.trim() : '';
+      const conteudo: RootContent[] = [imagem as RootContent];
+      if (legenda) {
+        conteudo.push(element('figcaption', {}, [textNode(legenda)]));
+      }
+      (parent as Element).children[indexInParent] = element('figure', {}, conteudo);
+    });
+  };
+}
+
 const processor = unified()
   .use(remarkParse)
   .use(remarkGfm)
@@ -131,6 +166,7 @@ const processor = unified()
   })
   .use(rehypeMarkers)
   .use(rehypeDocLinks)
+  .use(rehypeFiguras)
   .use(rehypeTableWrapper)
   .use(rehypeStringify, { allowDangerousHtml: false });
 

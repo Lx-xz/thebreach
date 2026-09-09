@@ -76,6 +76,10 @@ jobs:
   deploy:
     name: Publicar
     needs: build
+    # O ambiente github-pages só aceita deploy da branch padrão. Em branch de
+    # trabalho o build continua rodando — é ele que prova que a mudança está
+    # de pé — mas a publicação é pulada em vez de falhar.
+    if: github.ref_name == github.event.repository.default_branch
     runs-on: ubuntu-latest
     environment:
       name: github-pages

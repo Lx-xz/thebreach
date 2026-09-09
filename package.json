@@ -4,11 +4,12 @@
   "private": true,
   "description": "Compêndio Breach — representação visual do acervo em github.com/Lx-xz/breach",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "npm run imagens && next dev",
+    "build": "npm run imagens && next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "imagens": "node scripts/baixar-imagens.mjs"
   },
   "dependencies": {
     "fuse.js": "^7.1.0",

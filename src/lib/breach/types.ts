@@ -84,6 +84,8 @@ export interface BreachDoc {
   plain: string;
   githubUrl: string;
   updatedAt: string | null;
+  /** URL da ilustração do documento, quando o acervo tiver uma. */
+  hero: string | null;
 }
 
 export interface BreachCategory {
@@ -102,6 +104,7 @@ export interface BreachCategory {
   gaps: string[];
   githubUrl: string;
   updatedAt: string | null;
+  hero: string | null;
 }
 
 /** Uma linha das tabelas de 00-meta/INDICE-CANONICO.md. */
@@ -139,6 +142,8 @@ export interface Compendium {
   changelog: ChangelogEntry[];
   conventions: BreachDoc | null;
   indexDoc: BreachDoc | null;
+  /** README da raiz do acervo — o texto da página inicial. */
+  readme: BreachDoc | null;
   /** Lacunas prioritárias declaradas no índice canônico. */
   priorityGaps: Array<{ lacuna: string; onde: string; impacto: string }>;
   /** Contradições em aberto declaradas no índice canônico. */
