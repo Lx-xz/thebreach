@@ -32,6 +32,16 @@ jobs:
       - name: Obter o código do site
         uses: actions/checkout@v4
 
+      # Tenta ligar o Pages no modo "GitHub Actions" sozinho. O token padrão
+      # nem sempre tem permissão para isso; quando não tiver, o passo avisa e
+      # segue, e o Pages precisa ser ligado à mão em Settings › Pages.
+      - name: Ligar o GitHub Pages
+        id: pages
+        uses: actions/configure-pages@v5
+        continue-on-error: true
+        with:
+          enablement: true
+
       - name: Conferir o acesso ao acervo
         env:
           BREACH_TOKEN: ${{ secrets.BREACH_TOKEN }}
