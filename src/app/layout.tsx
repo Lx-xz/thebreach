@@ -4,6 +4,7 @@ import { AppearanceProvider } from '@/components/AppearanceProvider';
 import { AppShell, type NavCategory } from '@/components/AppShell';
 import { getCompendium, getSearchIndex } from '@/lib/breach/api';
 import { DEFAULT_LAYOUT, LAYOUT_IDS, STORAGE_KEYS } from '@/lib/layouts';
+import { BASE_PATH } from '@/lib/breach/slug';
 import '@/styles/main.scss';
 
 const cormorant = Cormorant_Garamond({
@@ -42,6 +43,7 @@ export const metadata: Metadata = {
   description:
     'Representação visual do acervo do universo Breach: cosmologia, geografia, povos, bestiário, forças, história, instituições, artefatos e narrativas.',
   applicationName: 'Compêndio Breach',
+  icons: { icon: [{ url: `${BASE_PATH}/favicon.svg`, type: 'image/svg+xml' }] },
 };
 
 /**

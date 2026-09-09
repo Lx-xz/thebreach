@@ -92,6 +92,10 @@ BREACH_LOCAL_PATH=../breach npm run dev
 | `BREACH_OWNER` / `BREACH_REPO` / `BREACH_REF` | `Lx-xz` / `breach` / `main` | Onde está o acervo. |
 | `NEXT_PUBLIC_BASE_PATH` | vazio | Prefixo da URL no GitHub Pages (`/thebreach`). |
 
+No fluxo de publicação o prefixo vem da variável de repositório `SITE_BASE_PATH`
+quando definida, e de `/thebreach` caso contrário. Com domínio próprio, defina-a
+como vazia.
+
 ---
 
 ## Publicação
@@ -105,8 +109,9 @@ acervo avisa que mudou.
 1. **Segredo `BREACH_TOKEN` neste repositório** — um token de acesso pessoal de
    escopo fino com permissão `Contents: Read` em `Lx-xz/breach`. Sem ele o build
    para com mensagem explicando o que falta.
-2. **Pages no modo GitHub Actions** — o fluxo tenta ligar isso sozinho; se não
-   conseguir, é em *Settings › Pages › Source: GitHub Actions*.
+2. **Pages no modo GitHub Actions** — em *Settings › Pages › Source: GitHub
+   Actions*. Isto precisa ser feito à mão: o token padrão das Actions não tem
+   permissão para ligar o Pages sozinho.
 3. **Segredo `SITE_DISPATCH_TOKEN` no repositório do acervo** *(opcional)* — um
    token com permissão de escrita em Actions aqui, para que um commit no acervo
    dispare a reconstrução do site em minutos em vez de esperar o build diário.

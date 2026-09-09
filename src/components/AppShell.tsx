@@ -129,7 +129,7 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
               {theme === 'dark' ? <Sun size={18} aria-hidden="true" /> : <Moon size={18} aria-hidden="true" />}
             </button>
             <a
-              className="tool"
+              className="tool tool--repo"
               href={repoUrl}
               target="_blank"
               rel="noreferrer noopener"

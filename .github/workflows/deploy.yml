@@ -32,6 +32,19 @@ jobs:
       - name: Obter o código do site
         uses: actions/checkout@v4
 
+      - name: Conferir o acesso ao acervo
+        env:
+          BREACH_TOKEN: ${{ secrets.BREACH_TOKEN }}
+        run: |
+          if [ -z "$BREACH_TOKEN" ]; then
+            echo "::error::O segredo BREACH_TOKEN não está configurado neste repositório."
+            echo "O acervo Lx-xz/breach é privado e precisa de um token para ser lido."
+            echo "Crie um token de escopo fino com 'Contents: Read' em Lx-xz/breach e"
+            echo "guarde-o em Settings › Secrets and variables › Actions como BREACH_TOKEN."
+            exit 1
+          fi
+          echo "Segredo presente."
+
       - name: Preparar o Node
         uses: actions/setup-node@v4
         with:
@@ -41,25 +54,18 @@ jobs:
       - name: Instalar dependências
         run: npm ci
 
-      - name: Configurar o GitHub Pages
-        id: pages
-        uses: actions/configure-pages@v5
-        with:
-          # Liga o Pages no modo "GitHub Actions" na primeira execução.
-          enablement: true
-
       - name: Verificar tipos
         run: npm run typecheck
 
       - name: Construir o site a partir do acervo
         env:
-          # O acervo é um repositório privado: sem este segredo o build para
-          # com uma mensagem explicando o que falta.
           BREACH_TOKEN: ${{ secrets.BREACH_TOKEN }}
           BREACH_OWNER: Lx-xz
           BREACH_REPO: breach
           BREACH_REF: main
-          NEXT_PUBLIC_BASE_PATH: ${{ steps.pages.outputs.base_path }}
+          # Em project pages a URL é /<repo>/. Com domínio próprio, defina a
+          # variável SITE_BASE_PATH como vazia em Settings › Variables.
+          NEXT_PUBLIC_BASE_PATH: ${{ vars.SITE_BASE_PATH != '' && vars.SITE_BASE_PATH || '/thebreach' }}
         run: npm run build
 
       - name: Enviar o artefato
