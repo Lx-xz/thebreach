@@ -9,7 +9,14 @@
 import type { BreachDoc, DocHeader, DocKind, DocRef, DocSection } from './types';
 import { renderMarkdown, toPlainText } from './markdown';
 import { mergeTallies, tallyMarkers } from './markers';
-import { deaccent, hrefForPath, parseCategoryDir, slugify } from './slug';
+import {
+  deaccent,
+  hrefForPath,
+  looksLikeDocPath,
+  normalizeDocPath,
+  parseCategoryDir,
+  slugify,
+} from './slug';
 import { githubUrlFor } from './source';
 
 const EMPTY_VALUES = new Set(['—', '-', '–', '(nenhum)', '(vazio)', '(nenhuma)', 'n/a', '']);
@@ -18,34 +25,37 @@ function isEmptyValue(value: string): boolean {
   return EMPTY_VALUES.has(value.trim().toLowerCase());
 }
 
-/** Título legível a partir do nome do arquivo, usado enquanto o real não é conhecido. */
-export function labelFromPath(filePath: string): string {
-  const file = filePath.split('/').pop() ?? filePath;
-  const stem = file.replace(/\.md$/i, '');
-  if (stem.toUpperCase() === 'README') {
-    const dir = filePath.split('/')[0];
-    const parsed = parseCategoryDir(dir);
-    return parsed ? parsed.slug : dir;
-  }
-  const withoutDate = stem.replace(/^\d{4}-\d{2}-\d{2}-/, '');
-  const spaced = withoutDate.replace(/-/g, ' ');
+function humanize(stem: string): string {
+  const spaced = stem.replace(/^\d{4}-\d{2}-\d{2}-/, '').replace(/-/g, ' ');
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+/** Título legível a partir do caminho, usado enquanto o real não é conhecido. */
+export function labelFromPath(filePath: string): string {
+  const segments = normalizeDocPath(filePath).split('/');
+  const stem = (segments[segments.length - 1] ?? '').replace(/\.md$/i, '');
+  if (stem.toUpperCase() !== 'README') return humanize(stem);
+
+  // O documento de uma entidade chama-se README: o nome está na pasta
+  // (CONVENCOES.md §6).
+  const dir = segments[segments.length - 2] ?? '';
+  if (!dir) return 'Compêndio';
+  const parsed = parseCategoryDir(dir);
+  return parsed ? parsed.slug : humanize(dir);
 }
 
 function toDocRefs(value: string): DocRef[] {
   if (isEmptyValue(value)) return [];
-  const paths = [...value.matchAll(/`([^`]+\.md)`/g)].map((m) => m[1].trim());
-  const fallback = paths.length
-    ? paths
-    : value
-        .split(',')
-        .map((part) => part.trim())
-        .filter((part) => part.endsWith('.md'));
-  return fallback.map((path) => ({
-    path,
-    href: hrefForPath(path) ?? '',
-    label: labelFromPath(path),
-  }));
+  // Uma entidade é citada pelo caminho da pasta; os arquivos que não são
+  // entidade, pelo nome. Os dois aparecem entre crases.
+  const inCode = [...value.matchAll(/`([^`]+)`/g)].map((m) => m[1].trim());
+  const candidates = (inCode.length ? inCode : value.split(',').map((part) => part.trim()))
+    .filter((item) => looksLikeDocPath(item));
+
+  return candidates.map((raw) => {
+    const path = normalizeDocPath(raw);
+    return { path, href: hrefForPath(path) ?? '', label: labelFromPath(path) };
+  });
 }
 
 function splitList(value: string): string[] {
@@ -158,7 +168,7 @@ function splitSections(lines: string[]): RawSection[] {
   return sections;
 }
 
-async function buildSection(raw: RawSection): Promise<DocSection> {
+async function buildSection(raw: RawSection, caminho: string): Promise<DocSection> {
   const markdown = raw.body.join('\n').replace(/^\s*-{3,}\s*$/gm, '').trim();
   const plain = toPlainText(markdown);
   const markers = tallyMarkers(markdown);
@@ -169,7 +179,7 @@ async function buildSection(raw: RawSection): Promise<DocSection> {
     number: raw.number,
     title: raw.title,
     level: raw.level,
-    html: await renderMarkdown(markdown),
+    html: await renderMarkdown(markdown, caminho),
     markers,
     isGap: Boolean(markers.LACUNA) && plain.length < 4,
     children: [],
@@ -193,7 +203,11 @@ function kindFor(filePath: string): DocKind {
   // README da raiz: é o texto da página inicial, não uma entrada do acervo.
   if (!filePath.includes('/')) return 'meta';
   if (filePath.startsWith('00-meta/')) return 'meta';
-  if (filePath.endsWith('/README.md')) return 'indice-categoria';
+  // Só o README no primeiro nível é índice de categoria. Mais fundo, o README
+  // é o documento de uma entidade (CONVENCOES.md §6).
+  if (filePath.split('/').length === 2 && filePath.endsWith('/README.md')) {
+    return 'indice-categoria';
+  }
   if (filePath.startsWith('09-')) return 'narrativa';
   return 'entrada';
 }
@@ -227,23 +241,29 @@ export async function parseDocument(filePath: string, markdown: string): Promise
 
   const { header, introMarkdown } = parsePreamble(preambleLines);
   const rawSections = splitSections(sectionLines);
-  const sections = nest(await Promise.all(rawSections.map(buildSection)));
+  const sections = nest(await Promise.all(rawSections.map((raw) => buildSection(raw, filePath))));
 
   const introPlain = toPlainText(introMarkdown);
   const bodyMarkdown = [introMarkdown, ...rawSections.map((s) => s.body.join('\n'))].join('\n');
 
-  const dir = filePath.split('/')[0];
+  const segments = filePath.split('/');
+  const dir = segments[0];
   const category = parseCategoryDir(dir);
-  const fileStem = (filePath.split('/').pop() ?? '').replace(/\.md$/i, '');
+  const fileStem = (segments[segments.length - 1] ?? '').replace(/\.md$/i, '');
+
+  // Slug do documento dentro da categoria. Com entidades aninhadas ele tem mais
+  // de um trecho: `dragoes/dragao-barbado`.
+  const trail = segments.slice(1, -1).map(slugify);
+  if (fileStem.toUpperCase() !== 'README') trail.push(slugify(fileStem));
 
   return {
     path: filePath,
     categorySlug: category?.slug ?? slugify(dir),
-    slug: fileStem.toUpperCase() === 'README' ? 'index' : slugify(fileStem),
+    slug: trail.length ? trail.join('/') : 'index',
     title,
     kind: kindFor(filePath),
     header,
-    introHtml: await renderMarkdown(introMarkdown),
+    introHtml: await renderMarkdown(introMarkdown, filePath),
     sections,
     markers: mergeTallies([
       tallyMarkers(introMarkdown),

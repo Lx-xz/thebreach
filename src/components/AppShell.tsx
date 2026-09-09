@@ -9,12 +9,52 @@ import { useAppearance } from './AppearanceProvider';
 import { SearchDialog } from './SearchDialog';
 import { Sigil } from './Sigil';
 
+/** Uma entidade na navegação, com as entidades contidas nela. */
+export interface NavDoc {
+  slug: string;
+  title: string;
+  children: NavDoc[];
+}
+
 export interface NavCategory {
   slug: string;
   number: string;
   title: string;
   count: number;
-  docs: Array<{ slug: string; title: string }>;
+  docs: NavDoc[];
+}
+
+/** Entidades da categoria, aninhadas como estão no acervo. */
+function NavDocs({
+  docs,
+  base,
+  pathname,
+}: {
+  docs: NavDoc[];
+  base: string;
+  pathname: string;
+}) {
+  return (
+    <ul className="railnav__sub">
+      {docs.map((doc) => {
+        const docHref = `${base}/${doc.slug}`;
+        return (
+          <li key={doc.slug}>
+            <Link
+              className="railnav__sublink"
+              href={docHref}
+              aria-current={pathname === docHref || pathname === `${docHref}/` ? 'page' : undefined}
+            >
+              {doc.title}
+            </Link>
+            {doc.children.length > 0 ? (
+              <NavDocs docs={doc.children} base={base} pathname={pathname} />
+            ) : null}
+          </li>
+        );
+      })}
+    </ul>
+  );
 }
 
 interface Props {
@@ -206,24 +246,7 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
                       <span className="railnav__count">{category.count || '—'}</span>
                     </Link>
                     {open && category.docs.length > 0 ? (
-                      <ul className="railnav__sub">
-                        {category.docs.map((doc) => {
-                          const docHref = `${href}/${doc.slug}`;
-                          return (
-                            <li key={doc.slug}>
-                              <Link
-                                className="railnav__sublink"
-                                href={docHref}
-                                aria-current={
-                                  pathname === docHref || pathname === `${docHref}/` ? 'page' : undefined
-                                }
-                              >
-                                {doc.title}
-                              </Link>
-                            </li>
-                          );
-                        })}
-                      </ul>
+                      <NavDocs docs={category.docs} base={href} pathname={pathname} />
                     ) : null}
                   </li>
                 );

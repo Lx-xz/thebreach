@@ -34,27 +34,47 @@ const META_ROUTES: Record<string, string> = {
   'README.md': '/',
 };
 
+/**
+ * Caminho de entidade → caminho do documento.
+ *
+ * Uma entidade é uma pasta (CONVENCOES.md §6), e é assim que o acervo se refere
+ * a ela: `04-bestiario/dragoes/dragao-barbado/`. O documento dela é o README
+ * dentro dessa pasta.
+ */
+export function normalizeDocPath(value: string): string {
+  const clean = value.trim().replace(/^\.\//, '').replace(/^\//, '');
+  if (/\.md$/i.test(clean)) return clean;
+  return `${clean.replace(/\/$/, '')}/README.md`;
+}
+
 /** Caminho no repo → rota no site. `null` quando o arquivo não vira página. */
 export function hrefForPath(filePath: string): string | null {
-  const clean = filePath.replace(/^\.\//, '').replace(/^\//, '');
+  const clean = normalizeDocPath(filePath);
   if (clean in META_ROUTES) return META_ROUTES[clean];
 
   const segments = clean.split('/');
-  if (segments.length !== 2) return null;
+  if (segments.length < 2) return null;
 
   const category = parseCategoryDir(segments[0]);
   if (!category) return null;
 
-  const file = segments[1];
+  const file = segments[segments.length - 1];
   if (!file.endsWith('.md')) return null;
-  if (file === 'README.md') return `/c/${category.slug}`;
 
-  return `/c/${category.slug}/${slugify(file.replace(/\.md$/, ''))}`;
+  // Segmentos entre a categoria e o arquivo: as pastas das entidades.
+  const trail = segments.slice(1, -1).map(slugify);
+  if (file !== 'README.md') trail.push(slugify(file.replace(/\.md$/, '')));
+  if (!trail.length) return `/c/${category.slug}`;
+
+  return `/c/${category.slug}/${trail.join('/')}`;
 }
 
-/** Reconhece uma referência a documento do acervo escrita como texto. */
+/** Reconhece uma referência a documento ou entidade do acervo escrita como texto. */
 export function looksLikeDocPath(value: string): boolean {
-  return /^(?:\d{2}-[a-z-]+\/[\w.-]+\.md|00-meta\/[\w.-]+\.md|README\.md|CLAUDE\.md)$/i.test(
-    value.trim(),
-  );
+  const raw = value.trim();
+  if (/^(README|CLAUDE)\.md$/i.test(raw)) return true;
+  // Entidade: pasta numerada seguida de uma ou mais pastas, com barra final.
+  if (/^\d{2}-[a-z-]+(?:\/[\w.-]+)*\/$/i.test(raw)) return true;
+  // Documento solto: pasta numerada e um arquivo .md em qualquer profundidade.
+  return /^\d{2}-[a-z-]+(?:\/[\w.-]+)*\/[\w.-]+\.md$/i.test(raw);
 }

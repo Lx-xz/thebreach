@@ -27,7 +27,7 @@ export type MarkerTally = Partial<Record<MarkerId, number>>;
 
 /** Uma referência a outro documento do acervo. */
 export interface DocRef {
-  /** Caminho no repo, ex.: `04-bestiario/dragoes.md`. */
+  /** Caminho do documento no repo, ex.: `04-bestiario/dragoes/README.md`. */
   path: string;
   /** Rota no site, ex.: `/c/bestiario/dragoes`. */
   href: string;
@@ -84,8 +84,14 @@ export interface BreachDoc {
   plain: string;
   githubUrl: string;
   updatedAt: string | null;
-  /** URL da ilustração do documento, quando o acervo tiver uma. */
+  /** URL da ilustração de abertura, quando a entidade tiver uma. */
   hero: string | null;
+}
+
+/** Uma entidade e as entidades contidas nela — uma classe e suas espécies. */
+export interface DocNode {
+  doc: BreachDoc;
+  children: DocNode[];
 }
 
 export interface BreachCategory {
@@ -98,8 +104,10 @@ export interface BreachCategory {
   title: string;
   description: string;
   status: string;
-  /** Documentos da categoria, sem o README. */
+  /** Documentos da categoria, sem o README. Plano, em qualquer profundidade. */
   docs: BreachDoc[];
+  /** Os mesmos documentos, aninhados como estão no acervo. */
+  tree: DocNode[];
   /** Itens da seção "Lacunas desta categoria". */
   gaps: string[];
   githubUrl: string;
