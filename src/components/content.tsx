@@ -208,6 +208,8 @@ export function DocArticle({ doc, backlinks = [] }: { doc: BreachDoc; backlinks?
           <MarkerMeter tally={doc.markers} />
         </div>
 
+        <Toc items={tocItems} />
+
         {doc.introHtml ? (
           <div className="doc__intro prose" dangerouslySetInnerHTML={{ __html: doc.introHtml }} />
         ) : null}
@@ -268,8 +270,6 @@ export function DocArticle({ doc, backlinks = [] }: { doc: BreachDoc; backlinks?
           </a>
         </p>
       </article>
-
-      <Toc items={tocItems} />
     </div>
   );
 }

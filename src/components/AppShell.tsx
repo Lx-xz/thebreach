@@ -3,10 +3,9 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Github, Menu, Moon, Search as SearchIcon, Sun, X } from 'lucide-react';
+import { Github, Moon, Pin, PinOff, PanelLeft, Search as SearchIcon, Sun, X } from 'lucide-react';
 import type { SearchRecord } from '@/lib/breach/types';
 import { useAppearance } from './AppearanceProvider';
-import { LayoutSwitcher } from './LayoutSwitcher';
 import { SearchDialog } from './SearchDialog';
 import { Sigil } from './Sigil';
 
@@ -29,25 +28,33 @@ const MAIN_LINKS = [
   { href: '/compendio', label: 'Índice canônico' },
   { href: '/alteracoes', label: 'Alterações' },
   { href: '/convencoes', label: 'Convenções' },
-  { href: '/layouts', label: 'Layouts' },
 ];
 
-/**
- * Casca do site.
- *
- * O DOM é idêntico nos quatro layouts: as diferenças de estrutura ficam todas
- * no CSS, ligadas ao atributo `data-layout` do <html>.
- */
+/** Acompanha uma media query sem divergir na hidratação. */
+function useWide(): boolean {
+  const [wide, setWide] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia('(min-width: 72rem)');
+    const sync = (): void => setWide(query.matches);
+    sync();
+    query.addEventListener('change', sync);
+    return () => query.removeEventListener('change', sync);
+  }, []);
+  return wide;
+}
+
 export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
   const pathname = usePathname();
-  const { theme, toggleTheme } = useAppearance();
-  const [drawer, setDrawer] = useState(false);
+  const { theme, toggleTheme, nav: navMode, setNav, drawer, setDrawer } = useAppearance();
   const [search, setSearch] = useState(false);
+  const wide = useWide();
 
-  // Fecha a gaveta ao navegar.
+  /** Barra lateral ocupando espaço próprio, sem cobrir o conteúdo. */
+  const railFixed = wide && navMode === 'pinned';
+
   useEffect(() => {
     setDrawer(false);
-  }, [pathname]);
+  }, [pathname, setDrawer]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
@@ -67,6 +74,21 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
   const isActive = (href: string): boolean =>
     pathname === href || pathname === `${href}/` || pathname.startsWith(`${href}/`);
 
+  // Fixada, o botão do cabeçalho recolhe; solta, abre e fecha a gaveta.
+  const toggleNav = (): void => {
+    if (railFixed) {
+      setNav('floating');
+      setDrawer(false);
+      return;
+    }
+    setDrawer(!drawer);
+  };
+
+  const togglePin = (): void => {
+    setNav(navMode === 'pinned' ? 'floating' : 'pinned');
+    setDrawer(false);
+  };
+
   return (
     <div className="app">
       <a className="skip-link" href="#conteudo">
@@ -77,12 +99,12 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
         <div className="masthead__inner">
           <button
             type="button"
-            className="tool tool--menu"
-            aria-label={drawer ? 'Fechar navegação' : 'Abrir navegação'}
-            aria-expanded={drawer}
-            onClick={() => setDrawer((value) => !value)}
+            className="tool tool--nav"
+            aria-label={railFixed ? 'Recolher a navegação' : drawer ? 'Fechar a navegação' : 'Abrir a navegação'}
+            aria-expanded={railFixed || drawer}
+            onClick={toggleNav}
           >
-            {drawer ? <X size={19} aria-hidden="true" /> : <Menu size={19} aria-hidden="true" />}
+            <PanelLeft size={19} aria-hidden="true" />
           </button>
 
           <Link className="brand" href="/">
@@ -119,7 +141,6 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
               <span>Buscar</span>
               <kbd>/</kbd>
             </button>
-            <LayoutSwitcher />
             <button
               type="button"
               className="tool"
@@ -143,6 +164,30 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
 
       <div className="frame">
         <aside className="railnav" data-open={drawer} aria-label="Categorias do acervo">
+          <div className="railnav__bar">
+            <span className="railnav__label">Navegação</span>
+            <button
+              type="button"
+              className="railnav__pin"
+              onClick={togglePin}
+              aria-pressed={navMode === 'pinned'}
+              title={navMode === 'pinned' ? 'Soltar a barra lateral' : 'Fixar a barra lateral aberta'}
+            >
+              {navMode === 'pinned' ? <PinOff size={15} aria-hidden="true" /> : <Pin size={15} aria-hidden="true" />}
+              <span className="sr-only">
+                {navMode === 'pinned' ? 'Soltar a barra lateral' : 'Fixar a barra lateral aberta'}
+              </span>
+            </button>
+            <button
+              type="button"
+              className="railnav__close"
+              onClick={() => setDrawer(false)}
+              aria-label="Fechar a navegação"
+            >
+              <X size={17} aria-hidden="true" />
+            </button>
+          </div>
+
           <div className="railnav__group">
             <p className="railnav__title">Categorias</p>
             <ul className="railnav__list">
@@ -205,7 +250,7 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
         </aside>
 
         {drawer ? (
-          <button type="button" className="scrim" aria-label="Fechar navegação" onClick={() => setDrawer(false)} />
+          <button type="button" className="scrim" aria-label="Fechar a navegação" onClick={() => setDrawer(false)} />
         ) : null}
 
         <main className="main" id="conteudo">

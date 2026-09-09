@@ -1,7 +1,7 @@
 @use 'mixins' as *;
 
 /* ---------------------------------------------------------------------------
-   Casca comum. Um único DOM; cada layout reposiciona e reveste estas peças.
+   Casca: cabeçalho, barra lateral, coluna de leitura e rodapé.
    ------------------------------------------------------------------------ */
 
 .app {
@@ -16,15 +16,15 @@
   position: sticky;
   top: 0;
   z-index: 40;
-  background: color-mix(in srgb, var(--bg-app) 88%, transparent);
-  backdrop-filter: blur(14px) saturate(1.3);
+  background: color-mix(in srgb, var(--bg-app) 90%, transparent);
+  backdrop-filter: blur(14px) saturate(1.2);
   border-bottom: 1px solid var(--border);
 }
 
 .masthead__inner {
   max-width: var(--page-max);
   margin: 0 auto;
-  padding: var(--space-3) var(--space-5);
+  padding: var(--space-4) var(--space-5);
   display: flex;
   align-items: center;
   gap: var(--space-5);
@@ -48,12 +48,7 @@
 .brand__mark {
   display: grid;
   place-items: center;
-  width: 2.4rem;
-  height: 2.4rem;
-  border-radius: var(--radius-m);
-  background: var(--accent-soft);
-  border: 1px solid var(--border);
-  color: var(--accent-ink);
+  color: var(--accent);
   flex: 0 0 auto;
 }
 
@@ -65,23 +60,19 @@
 }
 
 .brand__name {
-  font-family: var(--font-heading);
-  font-size: var(--step-1);
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-family: var(--font-sans);
+  font-size: var(--step-0);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+/* A assinatura da marca só cabe onde há folga. */
 .brand__tag {
-  font-size: var(--step--2);
-  color: var(--fg-muted);
-  letter-spacing: 0.04em;
-
-  @include until(48rem) {
-    display: none;
-  }
+  display: none;
 }
 
 .mainnav {
@@ -99,7 +90,7 @@
 
 .mainnav__link {
   padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-m);
   font-size: var(--step--1);
   color: var(--fg-muted);
   text-decoration: none;
@@ -112,7 +103,7 @@
   }
 
   &[aria-current='page'] {
-    color: var(--fg);
+    color: var(--accent-ink);
     background: var(--accent-soft);
   }
 }
@@ -124,12 +115,12 @@
   gap: var(--space-2);
   margin-inline-start: auto;
 
-  @include until(34rem) {
-    gap: var(--space-1);
-  }
-
   .mainnav + & {
     margin-inline-start: var(--space-3);
+  }
+
+  @include until(34rem) {
+    gap: var(--space-1);
   }
 }
 
@@ -147,9 +138,9 @@
     border-color 0.2s var(--ease);
 
   &:hover {
-    background: var(--bg-raised);
+    background: var(--accent-soft);
     border-color: var(--border);
-    color: var(--fg);
+    color: var(--accent-ink);
   }
 }
 
@@ -162,7 +153,6 @@
   gap: var(--space-2);
   padding: 0 var(--space-3);
   border-color: var(--border);
-  background: var(--bg-raised);
   font-size: var(--step--1);
 
   kbd {
@@ -183,12 +173,6 @@
   }
 }
 
-.tool--menu {
-  @include from(72rem) {
-    display: none;
-  }
-}
-
 /* O selo desaparece antes do nome; o nome, antes das ferramentas. */
 @media (max-width: 33.98rem) {
   .brand__mark {
@@ -197,7 +181,7 @@
 
   .brand__name {
     font-size: var(--step--1);
-    letter-spacing: 0;
+    letter-spacing: 0.1em;
   }
 }
 
@@ -216,61 +200,105 @@
   margin: 0 auto;
   padding: 0 var(--space-5);
   display: grid;
-  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
-  gap: var(--space-7);
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
-
-  @include until(72rem) {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0;
-  }
 }
 
 .main {
   min-width: 0;
-  padding-block: var(--space-7) var(--space-8);
+  width: 100%;
+  max-width: var(--column-w);
+  margin-inline: auto;
+  padding-block: var(--space-8);
 }
 
-/* --- Navegação lateral --------------------------------------------------- */
+/* --- Barra lateral -------------------------------------------------------
+   Por padrão ela é uma gaveta: fica fora da tela e entra por cima do
+   conteúdo. Fixada (data-nav="pinned") e em tela larga, passa a ocupar
+   coluna própria e acompanha a rolagem.
+   ------------------------------------------------------------------------ */
 
 .railnav {
-  position: sticky;
-  top: 5.2rem;
-  padding-block: var(--space-7);
-  max-height: calc(100dvh - 6rem);
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 60;
+  width: min(21rem, 86vw);
+  max-height: none;
+  padding: var(--space-4) var(--space-5) var(--space-7);
   overflow-y: auto;
   scrollbar-width: thin;
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border);
+  box-shadow: var(--shadow-l);
+  transform: translateX(-102%);
+  transition: transform 0.3s var(--ease);
 
-  @include until(72rem) {
-    position: fixed;
-    inset: 0 auto 0 0;
-    z-index: 60;
-    width: min(21rem, 86vw);
-    max-height: none;
-    padding: var(--space-6) var(--space-5);
-    background: var(--bg-surface);
-    border-right: 1px solid var(--border);
-    box-shadow: var(--shadow-l);
-    transform: translateX(-102%);
-    transition: transform 0.32s var(--ease);
-
-    &[data-open='true'] {
-      transform: none;
-    }
+  &[data-open='true'] {
+    transform: none;
   }
 }
 
-.railnav__title {
+.railnav__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.railnav__label {
   font-family: var(--font-sans);
   font-size: var(--step--2);
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.16em;
   color: var(--ink-4);
-  margin-bottom: var(--space-3);
+  margin-inline-end: auto;
+}
+
+.railnav__pin,
+.railnav__close {
+  display: inline-grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: var(--radius-m);
+  border: 1px solid transparent;
+  color: var(--ink-4);
+  transition: color 0.2s var(--ease), background-color 0.2s var(--ease),
+    border-color 0.2s var(--ease);
+
+  &:hover {
+    color: var(--accent-ink);
+    background: var(--accent-soft);
+    border-color: var(--border);
+  }
+}
+
+.railnav__pin {
+  &[aria-pressed='true'] {
+    color: var(--accent-ink);
+  }
+
+  /* Fixar não faz sentido onde a barra é sempre gaveta. */
+  @include until(72rem) {
+    display: none;
+  }
 }
 
 .railnav__group + .railnav__group {
   margin-top: var(--space-6);
+}
+
+.railnav__title {
+  font-family: var(--font-heading);
+  font-variant: small-caps;
+  font-size: var(--step-0);
+  letter-spacing: 0.08em;
+  color: var(--accent-ink);
+  margin: 0 0 var(--space-2);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--border);
 }
 
 .railnav__list {
@@ -279,49 +307,53 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 1px;
 }
 
 .railnav__item {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-m);
-  font-size: var(--step--1);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+  border-left: 2px solid transparent;
+  font-family: var(--font-heading);
+  font-variant: small-caps;
+  font-size: var(--step-1);
+  letter-spacing: 0.04em;
+  line-height: 1.3;
   color: var(--ink-2);
   text-decoration: none;
-  transition: background-color 0.18s var(--ease), color 0.18s var(--ease);
+  transition: color 0.18s var(--ease), border-color 0.18s var(--ease);
 
   &:hover {
-    background: var(--bg-raised);
     color: var(--fg);
+    border-left-color: var(--line-strong);
   }
 
   &[aria-current='page'] {
-    background: var(--accent-soft);
     color: var(--accent-ink);
-    font-weight: 600;
+    border-left-color: var(--accent);
   }
 }
 
 .railnav__num {
-  font-family: var(--font-mono);
-  font-size: var(--step--2);
+  font-family: var(--font-num);
+  font-variant: normal;
+  font-size: var(--step--1);
   color: var(--ink-4);
   flex: 0 0 auto;
 }
 
 .railnav__count {
   margin-left: auto;
-  font-family: var(--font-mono);
+  font-family: var(--font-num);
+  font-variant: normal;
   font-size: var(--step--2);
   color: var(--ink-4);
 }
 
 .railnav__sub {
   list-style: none;
-  margin: var(--space-1) 0 var(--space-2);
+  margin: 0 0 var(--space-2);
   padding-left: var(--space-6);
   display: flex;
   flex-direction: column;
@@ -329,20 +361,17 @@
 }
 
 .railnav__sublink {
-  padding: 0.28rem var(--space-3);
+  padding: 0.3rem var(--space-3);
   font-size: var(--step--1);
   color: var(--fg-muted);
   text-decoration: none;
-  border-radius: var(--radius-s);
 
   &:hover {
     color: var(--fg);
-    background: var(--bg-raised);
   }
 
   &[aria-current='page'] {
     color: var(--accent-ink);
-    font-weight: 600;
   }
 }
 
@@ -350,13 +379,41 @@
   position: fixed;
   inset: 0;
   z-index: 50;
-  background: rgba(20, 16, 12, 0.45);
-  backdrop-filter: blur(2px);
-  border: 0;
   width: 100%;
+  border: 0;
+  background: rgba(20, 16, 12, 0.4);
+  backdrop-filter: blur(2px);
+}
 
+/* Fixada em tela larga: coluna própria, sem sombra e sem cobrir nada. */
+:root[data-nav='pinned'] {
   @include from(72rem) {
-    display: none;
+    .frame {
+      grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+      gap: var(--space-7);
+    }
+
+    .main {
+      margin-inline: 0;
+    }
+
+    .railnav {
+      position: sticky;
+      inset: auto;
+      top: 5.6rem;
+      z-index: 1;
+      width: auto;
+      max-height: calc(100dvh - 8rem);
+      padding: var(--space-8) var(--space-4) var(--space-6) 0;
+      background: transparent;
+      border-right: 0;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .railnav__close {
+      display: none;
+    }
   }
 }
 
@@ -364,7 +421,6 @@
 
 .colophon {
   border-top: 1px solid var(--border);
-  background: color-mix(in srgb, var(--paper-3) 45%, transparent);
   margin-top: auto;
 }
 
@@ -383,7 +439,7 @@
   font-family: var(--font-sans);
   font-size: var(--step--2);
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   color: var(--ink-4);
   margin-bottom: var(--space-3);
 }

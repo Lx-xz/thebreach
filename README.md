@@ -7,7 +7,7 @@ cópia do conteúdo. Durante o build ele consulta a API do GitHub, lê os arquiv
 markdown, entende as convenções do acervo (cabeçalho de metadados, seções
 numeradas, marcadores de confiabilidade) e gera páginas estáticas.
 
-**Status:** quatro layouts em avaliação. A escolha final ainda não foi feita.
+**Status:** em construção, acompanhando o acervo.
 
 ---
 
@@ -17,7 +17,7 @@ numeradas, marcadores de confiabilidade) e gera páginas estáticas.
 |---|---|---|
 | Next.js 15 (App Router) | framework | Export estático — roda no GitHub Pages sem servidor. |
 | TypeScript | tipos | O modelo do acervo é descrito em `src/lib/breach/types.ts`. |
-| Sass (`.scss`) | estilo | Sem Tailwind. Tokens em custom properties, um arquivo por layout. |
+| Sass (`.scss`) | estilo | Sem Tailwind. Tokens em custom properties; a aparência fica isolada em `_skin.scss`. |
 | lucide-react | ícones | — |
 | unified / remark / rehype | markdown → HTML | Tabelas GFM e três transformações próprias (ver abaixo). |
 | fuse.js | busca | Índice gerado no build, busca no navegador, sem servidor. |
@@ -52,22 +52,27 @@ o que falta é conteúdo, como no acervo.
 
 ---
 
-## Os quatro layouts
+## O layout
 
-O HTML é o mesmo nos quatro. A troca acontece por um atributo `data-layout` no
-elemento raiz, e cada layout é uma folha de estilo que reposiciona e reveste as
-mesmas peças (`src/styles/layouts/`). Por isso a troca é instantânea, não
-recarrega a página e não duplica componente nenhum. A escolha fica no
-`localStorage` e é reaplicada antes da primeira pintura.
+Uma coluna de leitura estreita em tipografia serifada — Cormorant Garamond nos
+títulos, Spectral no corpo — sem moldura, sem cartão e sem sombra. Os algarismos
+saem em Fraunces, que tem numerais de desenho forte e não se confunde com o
+texto: números de seção, contagens da barra lateral, estatísticas e datas.
 
-| Layout | Ideia |
-|---|---|
-| **Grimório** | O tomo. Pergaminho emoldurado, serifa, versalete, capitular, fleurões. |
-| **Códice** | Documentação. Árvore à esquerda, sumário à direita, denso e sem ornamento. |
-| **Atlas** | Mosaico. Cartões grandes, cor pastel por categoria, muito ar. |
-| **Escriba** | Manuscrito. Coluna estreita, tipografia grande, zero cromo. |
+A **barra lateral** lista as categorias em versalete, com o número da pasta e a
+contagem de documentos, e abre a lista de documentos da categoria em que você
+está. Ela tem dois modos:
 
-Há também tema claro e escuro, independente do layout.
+- **Fixada** (padrão): ocupa coluna própria e acompanha a rolagem.
+- **Solta**: fica fora da tela e entra por cima do conteúdo quando chamada,
+  fechando ao navegar ou ao clicar fora.
+
+O botão à esquerda do cabeçalho recolhe e chama a barra; o alfinete dentro dela
+troca entre os dois modos. A escolha fica no `localStorage` e é reaplicada antes
+da primeira pintura, para não haver piscar ao navegar. Em telas estreitas ela é
+sempre gaveta.
+
+Há também tema claro e escuro, independente disso.
 
 ---
 

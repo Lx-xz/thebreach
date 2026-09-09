@@ -30,9 +30,9 @@
   --lilac: #b9a6d4;
   --teal: #86b6b0;
 
-  --accent: #8b7d5e;
-  --accent-soft: #f3ead6;
-  --accent-ink: #6b5c3c;
+  --accent: #9a6f6a;
+  --accent-soft: #f4eae8;
+  --accent-ink: #7a4f4a;
 
   /* Marcadores de confiabilidade */
   --m-canonico-bg: #f7e9cd;
@@ -67,13 +67,15 @@
 
   /* Tipografia */
   --font-display: var(--font-cormorant), Georgia, "Times New Roman", serif;
-  --font-display-alt: var(--font-fraunces), Georgia, serif;
   --font-serif: var(--font-spectral), Georgia, serif;
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: ui-monospace, "SFMono-Regular", "JetBrains Mono", Menlo, monospace;
 
-  --font-body: var(--font-sans);
+  /* Títulos e corpo em serifada; algarismos em Fraunces, que tem numerais
+     de desenho forte e não se confunde com o texto. */
   --font-heading: var(--font-display);
+  --font-body: var(--font-serif);
+  --font-num: var(--font-fraunces), Georgia, serif;
 
   --step--2: clamp(0.7rem, 0.68rem + 0.1vw, 0.76rem);
   --step--1: clamp(0.82rem, 0.79rem + 0.15vw, 0.9rem);
@@ -84,8 +86,8 @@
   --step-4: clamp(2.1rem, 1.6rem + 2.4vw, 3.8rem);
   --step-5: clamp(2.6rem, 1.7rem + 4vw, 5.4rem);
 
-  --measure: 68ch;
-  --leading: 1.68;
+  --measure: 62ch;
+  --leading: 1.8;
 
   /* Ritmo e forma */
   --space-1: 0.25rem;
@@ -97,23 +99,25 @@
   --space-7: 3rem;
   --space-8: 4.5rem;
 
-  --radius-s: 4px;
-  --radius-m: 10px;
-  --radius-l: 18px;
+  --radius-s: 3px;
+  --radius-m: 5px;
+  --radius-l: 6px;
   --radius-pill: 999px;
 
   --shadow-s: 0 1px 2px rgba(43, 38, 33, 0.06), 0 2px 8px rgba(43, 38, 33, 0.04);
   --shadow-m: 0 2px 6px rgba(43, 38, 33, 0.07), 0 12px 30px rgba(43, 38, 33, 0.08);
   --shadow-l: 0 20px 60px rgba(43, 38, 33, 0.14);
 
-  --page-max: 1320px;
+  --page-max: 1260px;
   --sidebar-w: 16.5rem;
   --toc-w: 15rem;
+  /* Largura da coluna de leitura, independente da barra lateral. */
+  --column-w: 44rem;
 
   /* Superfícies derivadas — cada layout redefine */
-  --bg-app: var(--paper-2);
+  --bg-app: var(--paper-1);
   --bg-surface: var(--paper-1);
-  --bg-raised: var(--paper-0);
+  --bg-raised: transparent;
   --fg: var(--ink-1);
   --fg-muted: var(--ink-3);
   --border: var(--line);
@@ -145,9 +149,9 @@
   --lilac: #c4b3dd;
   --teal: #93c2bc;
 
-  --accent: #cbb78a;
-  --accent-soft: #332c22;
-  --accent-ink: #e6d3a8;
+  --accent: #cfa6a0;
+  --accent-soft: #322726;
+  --accent-ink: #e6bdb6;
 
   --m-canonico-bg: #3a2f18;
   --m-canonico-fg: #f0d093;
@@ -179,7 +183,7 @@
 
   --bg-app: var(--paper-2);
   --bg-surface: var(--paper-1);
-  --bg-raised: var(--paper-3);
+  --bg-raised: transparent;
   --fg: var(--ink-1);
   --fg-muted: var(--ink-3);
   --border: var(--line);

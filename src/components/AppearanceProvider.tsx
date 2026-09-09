@@ -2,68 +2,65 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
-  DEFAULT_LAYOUT,
+  DEFAULT_NAV,
   DEFAULT_THEME,
   STORAGE_KEYS,
-  isLayoutId,
-  type LayoutId,
+  isNavMode,
+  type NavMode,
   type ThemeId,
 } from '@/lib/layouts';
 
 interface Appearance {
-  layout: LayoutId;
   theme: ThemeId;
-  setLayout: (layout: LayoutId) => void;
   toggleTheme: () => void;
+  /** `pinned`: a barra lateral fica sempre aberta em telas largas. */
+  nav: NavMode;
+  setNav: (mode: NavMode) => void;
+  /** Gaveta aberta por cima do conteúdo (telas estreitas ou modo flutuante). */
+  drawer: boolean;
+  setDrawer: (open: boolean) => void;
 }
 
 const AppearanceContext = createContext<Appearance | null>(null);
 
-/**
- * Guarda layout e tema.
- *
- * O DOM é o mesmo nos quatro layouts — quem muda é a folha de estilo, através
- * do atributo `data-layout` no elemento raiz. Assim a troca é instantânea e
- * não existe divergência de hidratação entre servidor e cliente.
- */
+function remember(key: string, value: string): void {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    /* navegação privada: a escolha vale só para esta sessão */
+  }
+}
+
 export function AppearanceProvider({ children }: { children: React.ReactNode }) {
-  const [layout, setLayoutState] = useState<LayoutId>(DEFAULT_LAYOUT);
   const [theme, setTheme] = useState<ThemeId>(DEFAULT_THEME);
+  const [nav, setNavState] = useState<NavMode>(DEFAULT_NAV);
+  const [drawer, setDrawer] = useState(false);
 
   // Alinha o estado do React com o que o script inline já aplicou no <html>.
   useEffect(() => {
     const root = document.documentElement;
-    const storedLayout = root.dataset.layout;
-    if (isLayoutId(storedLayout)) setLayoutState(storedLayout);
     if (root.dataset.theme === 'dark') setTheme('dark');
-  }, []);
-
-  const setLayout = useCallback((next: LayoutId) => {
-    setLayoutState(next);
-    document.documentElement.dataset.layout = next;
-    try {
-      window.localStorage.setItem(STORAGE_KEYS.layout, next);
-    } catch {
-      /* navegação privada: a escolha vale só para esta sessão */
-    }
+    if (isNavMode(root.dataset.nav)) setNavState(root.dataset.nav);
   }, []);
 
   const toggleTheme = useCallback(() => {
     setTheme((current) => {
       const next: ThemeId = current === 'dark' ? 'light' : 'dark';
       document.documentElement.dataset.theme = next;
-      try {
-        window.localStorage.setItem(STORAGE_KEYS.theme, next);
-      } catch {
-        /* idem */
-      }
+      remember(STORAGE_KEYS.theme, next);
       return next;
     });
   }, []);
 
+  const setNav = useCallback((mode: NavMode) => {
+    setNavState(mode);
+    document.documentElement.dataset.nav = mode;
+    remember(STORAGE_KEYS.nav, mode);
+  }, []);
+
   const value = useMemo(
-    () => ({ layout, theme, setLayout, toggleTheme }),
-    [layout, theme, setLayout, toggleTheme],
+    () => ({ theme, toggleTheme, nav, setNav, drawer, setDrawer }),
+    [theme, toggleTheme, nav, setNav, drawer],
   );
 
   return <AppearanceContext.Provider value={value}>{children}</AppearanceContext.Provider>;

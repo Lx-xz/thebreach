@@ -1,0 +1,312 @@
+@use 'mixins' as *;
+
+/* ---------------------------------------------------------------------------
+   Pele do Compêndio.
+   Os arquivos anteriores definem estrutura e comportamento; este define a
+   aparência: editorial, sem moldura e sem cartão, com algarismos em Fraunces.
+   ------------------------------------------------------------------------ */
+
+/* --- Cabeçalho de página ------------------------------------------------- */
+
+.pagehead {
+  gap: var(--space-5);
+  margin-bottom: var(--space-8);
+}
+
+.pagehead__eyebrow {
+  letter-spacing: 0.26em;
+}
+
+.pagehead__title {
+  font-size: var(--step-5);
+  font-weight: 400;
+  line-height: 1.03;
+  letter-spacing: -0.025em;
+}
+
+.pagehead__lede {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: var(--step-1);
+  max-width: 46ch;
+}
+
+.crumbs {
+  margin-bottom: var(--space-3);
+}
+
+/* --- Fichas de metadados ------------------------------------------------- */
+
+.chip {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: var(--step--2);
+  white-space: normal;
+}
+
+a.chip:hover {
+  color: var(--accent-ink);
+}
+
+.chips {
+  gap: var(--space-4);
+}
+
+.reflist {
+  gap: var(--space-4);
+}
+
+/* --- Documento ----------------------------------------------------------- */
+
+.doc__meta {
+  gap: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+.doc__gauge {
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--border);
+}
+
+.doc__intro {
+  font-size: var(--step-1);
+  margin-bottom: var(--space-7);
+}
+
+.section + .section {
+  margin-top: var(--space-8);
+  padding-top: 0;
+  border-top: 0;
+}
+
+.section__head {
+  display: block;
+  margin-bottom: var(--space-5);
+}
+
+/* O número da seção vira uma legenda acima do título. */
+.section__num {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-family: var(--font-num);
+  font-size: var(--step--1);
+  letter-spacing: 0.3em;
+  color: var(--accent);
+}
+
+.section__title {
+  font-size: var(--step-2);
+  font-weight: 400;
+}
+
+.section__subtitle {
+  font-weight: 400;
+
+  .section__num {
+    display: inline;
+    margin-right: var(--space-2);
+  }
+}
+
+.prose {
+  font-size: var(--step-1);
+}
+
+/* Selos discretos: contorno, sem preenchimento. */
+.marker {
+  background: transparent;
+  border-color: var(--m-bd);
+  font-size: 0.58em;
+  letter-spacing: 0.14em;
+  padding: 0.12em 0.55em;
+}
+
+.gapnote {
+  border-radius: var(--radius-s);
+}
+
+/* --- Sumário ------------------------------------------------------------- */
+
+.toc {
+  position: static;
+  max-width: none;
+  margin: var(--space-6) 0 var(--space-8);
+  padding: 0 0 var(--space-5);
+  border: 0;
+  border-bottom: 1px solid var(--border);
+
+  @include until(64rem) {
+    border: 0;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    padding: 0 0 var(--space-5);
+  }
+}
+
+/* Em duas colunas o sumário não empurra o texto para fora da primeira tela. */
+.toc__list {
+  display: block;
+  border-left: 0;
+  columns: 2;
+  column-gap: var(--space-6);
+
+  @include until(38rem) {
+    columns: 1;
+  }
+
+  li {
+    break-inside: avoid;
+  }
+}
+
+.toc__link {
+  padding: 0.22rem 0;
+  margin-left: 0;
+  border-left: 0;
+  break-inside: avoid;
+
+  &[data-active='true'] {
+    border-left: 0;
+    color: var(--accent-ink);
+  }
+}
+
+.toc__link--sub {
+  padding-left: var(--space-4);
+}
+
+/* Sem coluna à direita: o sumário vem antes do texto. */
+.doclayout {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+
+.doc {
+  max-width: none;
+}
+
+/* --- Cartões e listas ---------------------------------------------------- */
+
+.grid {
+  gap: 0 var(--space-6);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
+}
+
+.grid--wide {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+}
+
+.card {
+  padding: var(--space-5) 0;
+  gap: var(--space-2);
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  background: none;
+
+  &::before {
+    display: none;
+  }
+}
+
+a.card:hover,
+a.card:focus-visible {
+  transform: none;
+  box-shadow: none;
+  border-color: var(--border);
+  color: var(--accent-ink);
+
+  .card__title {
+    color: var(--accent-ink);
+  }
+}
+
+.card--empty {
+  border-style: solid;
+  color: inherit;
+  opacity: 0.7;
+}
+
+.card--ghost {
+  background: none;
+}
+
+.card__num {
+  font-family: var(--font-num);
+  font-size: var(--step--1);
+  letter-spacing: 0.18em;
+  color: var(--accent);
+}
+
+.card__title {
+  font-size: var(--step-2);
+  font-weight: 400;
+  transition: color 0.2s var(--ease);
+}
+
+.card__foot {
+  padding-top: var(--space-2);
+  border-top: 0;
+}
+
+/* --- Números ------------------------------------------------------------- */
+
+/* Cinco números cabem em uma linha na coluna de leitura. */
+.stats {
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  padding: var(--space-6) 0;
+  border: 0;
+  border-block: 1px solid var(--border);
+  border-radius: 0;
+  background: none;
+}
+
+.stat__value {
+  font-family: var(--font-num);
+  font-size: var(--step-4);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+
+.stat__label {
+  letter-spacing: 0.14em;
+}
+
+.timeline__date {
+  font-family: var(--font-num);
+  letter-spacing: 0.14em;
+}
+
+.timeline__title {
+  font-weight: 400;
+}
+
+/* --- Blocos -------------------------------------------------------------- */
+
+.panel {
+  padding: var(--space-5) 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  background: none;
+}
+
+.panel__title {
+  letter-spacing: 0.14em;
+}
+
+.empty {
+  border-style: solid;
+  border-radius: var(--radius-m);
+}
+
+.section-title h2 {
+  font-size: var(--step-3);
+  font-weight: 400;
+}
+
+.md-table {
+  border-radius: var(--radius-m);
+  background: none;
+}

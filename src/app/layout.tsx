@@ -3,7 +3,7 @@ import { Cormorant_Garamond, Fraunces, Inter, Spectral } from 'next/font/google'
 import { AppearanceProvider } from '@/components/AppearanceProvider';
 import { AppShell, type NavCategory } from '@/components/AppShell';
 import { getCompendium, getSearchIndex } from '@/lib/breach/api';
-import { DEFAULT_LAYOUT, LAYOUT_IDS, STORAGE_KEYS } from '@/lib/layouts';
+import { DEFAULT_NAV, STORAGE_KEYS } from '@/lib/layouts';
 import { BASE_PATH } from '@/lib/breach/slug';
 import '@/styles/main.scss';
 
@@ -47,14 +47,14 @@ export const metadata: Metadata = {
 };
 
 /**
- * Aplica layout e tema guardados antes da primeira pintura.
- * Sem isto haveria um piscar do layout padrão a cada navegação direta.
+ * Aplica tema e estado da barra lateral antes da primeira pintura.
+ * Sem isto a página piscaria no layout padrão a cada navegação direta.
  */
 const APPEARANCE_SCRIPT = `(function(){try{var d=document.documentElement;
-var l=localStorage.getItem(${JSON.stringify(STORAGE_KEYS.layout)});
-if(l&&${JSON.stringify([...LAYOUT_IDS])}.indexOf(l)>-1){d.setAttribute('data-layout',l);}
 var t=localStorage.getItem(${JSON.stringify(STORAGE_KEYS.theme)});
 if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){d.setAttribute('data-theme','dark');}
+var n=localStorage.getItem(${JSON.stringify(STORAGE_KEYS.nav)});
+if(n==='pinned'||n==='floating'){d.setAttribute('data-nav',n);}
 }catch(e){}})();`;
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -72,8 +72,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html
       lang="pt-BR"
-      data-layout={DEFAULT_LAYOUT}
       data-theme="light"
+      data-nav={DEFAULT_NAV}
       className={`${cormorant.variable} ${fraunces.variable} ${inter.variable} ${spectral.variable}`}
       suppressHydrationWarning
     >

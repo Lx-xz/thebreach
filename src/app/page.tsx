@@ -8,7 +8,6 @@ import {
   MarkerLegend,
   PageHead,
 } from '@/components/content';
-import { LayoutPicker } from '@/components/LayoutPicker';
 import { MARKERS, MARKER_ORDER } from '@/lib/breach/markers';
 
 export default async function HomePage() {
@@ -104,20 +103,6 @@ export default async function HomePage() {
           </p>
           <MarkerLegend />
         </div>
-      </section>
-
-      <section>
-        <div className="section-title">
-          <h2>Quatro layouts, um acervo</h2>
-          <Link href="/layouts">
-            comparar <ArrowRight size={13} aria-hidden="true" />
-          </Link>
-        </div>
-        <p className="card__text" style={{ marginBottom: 'var(--space-5)', maxWidth: 'var(--measure)' }}>
-          O mesmo conteúdo, quatro apresentações. Escolha uma para ver o site inteiro mudar — a
-          preferência fica guardada neste navegador.
-        </p>
-        <LayoutPicker />
       </section>
 
       <section>
