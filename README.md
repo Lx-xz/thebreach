@@ -115,8 +115,10 @@ acervo avisa que mudou.
    escopo fino com permissão `Contents: Read` em `Lx-xz/breach`. Sem ele o build
    para com mensagem explicando o que falta.
 2. **Pages no modo GitHub Actions** — em *Settings › Pages › Source: GitHub
-   Actions*. Isto precisa ser feito à mão: o token padrão das Actions não tem
-   permissão para ligar o Pages sozinho.
+   Actions*. Só à mão: criar o site do Pages exige permissão de administração
+   do repositório, que o token automático das Actions nunca tem. Testado com o
+   repositório público — o GitHub responde `Resource not accessible by
+   integration` de qualquer forma.
 3. **Segredo `SITE_DISPATCH_TOKEN` no repositório do acervo** *(opcional)* — um
    token com permissão de escrita em Actions aqui, para que um commit no acervo
    dispare a reconstrução do site em minutos em vez de esperar o build diário.
