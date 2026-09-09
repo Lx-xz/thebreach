@@ -194,8 +194,19 @@
   max-height: none
   padding: var(--space-4) var(--space-5) var(--space-7)
   overflow-y: auto
-  scrollbar-width: thin
+  // A barra da lateral fica escondida, e não estilizada: `scrollbar-color` não
+  // chega a todo navegador, e uma barra do sistema no meio da navegação destoa
+  // do resto. As duas declarações cobrem os dois caminhos — onde a padronizada
+  // vale ela esconde, onde não vale a `-webkit-` esconde.
+  scrollbar-width: none
+  // O sinal de que há mais conteúdo passa a ser o esmaecer na borda de baixo,
+  // que funciona em qualquer navegador.
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 2.5rem), transparent 100%)
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 2.5rem), transparent 100%)
   background: var(--bg-surface)
+
+  &::-webkit-scrollbar
+    display: none
   border-right: 1px solid var(--border)
   box-shadow: var(--shadow-l)
   transform: translateX(-102%)
@@ -264,6 +275,43 @@
   display: flex
   flex-direction: column
 
+// Uma linha da árvore: a chave que abre o galho e, ao lado, o link que leva ao
+// documento. São coisas separadas de propósito — ver o que há dentro de uma
+// pasta não deveria obrigar a entrar nela.
+.railnav__linha
+  display: flex
+  align-items: center
+  gap: 0.15rem
+
+  > .railnav__item,
+  > .railnav__sublink
+    flex: 1 1 auto
+    min-width: 0
+
+.railnav__chave
+  flex: 0 0 auto
+  display: inline-grid
+  place-items: center
+  width: 1.3rem
+  height: 1.3rem
+  border-radius: var(--radius-s)
+  color: var(--ink-4)
+  transition: color 0.15s var(--ease), background-color 0.15s var(--ease)
+
+  &:hover
+    color: var(--accent-ink)
+    background: var(--accent-soft)
+
+  svg
+    transition: transform 0.18s var(--ease)
+
+  &[aria-expanded='true'] svg
+    transform: rotate(90deg)
+
+// Quem não tem galho ocupa o mesmo espaço, para os nomes ficarem alinhados.
+.railnav__chave--vazia
+  pointer-events: none
+
 .railnav__item
   display: flex
   align-items: center
@@ -305,7 +353,8 @@
 .railnav__sub
   list-style: none
   margin: 0 0 var(--space-2)
-  padding-left: var(--space-6)
+  // Recuo de uma chave: o galho de baixo começa onde o nome de cima começa.
+  padding-left: 1.45rem
   display: flex
   flex-direction: column
   border-left: 1px solid var(--border)
@@ -314,7 +363,7 @@
 // o texto até a borda da barra.
 .railnav__sub .railnav__sub
   margin-bottom: 0
-  padding-left: var(--space-4)
+  padding-left: 1.45rem
 
 .railnav__sublink
   padding: 0.3rem var(--space-3)
@@ -354,7 +403,9 @@
       z-index: 1
       width: auto
       max-height: calc(100dvh - 8rem)
-      padding: var(--space-8) var(--space-4) var(--space-6) 0
+      // Menos ar no topo: com a árvore recolhida, o que decide se a lateral
+      // rola é justamente esse espaço morto.
+      padding: var(--space-5) var(--space-4) var(--space-5) 0
       background: transparent
       border-right: 0
       box-shadow: none

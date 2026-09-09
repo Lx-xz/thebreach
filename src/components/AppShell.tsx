@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Github, Moon, Pin, PinOff, PanelLeft, Search as SearchIcon, Sun, X } from 'lucide-react';
+import {
+  ChevronRight, Github, Moon, Pin, PinOff, PanelLeft, Search as SearchIcon, Sun, X,
+} from 'lucide-react';
 import type { SearchRecord } from '@/lib/breach/types';
 import { useAppearance } from './AppearanceProvider';
 import { SearchDialog } from './SearchDialog';
@@ -24,31 +26,97 @@ export interface NavCategory {
   docs: NavDoc[];
 }
 
+const CHAVE_ABERTOS = 'breach:navegacao-aberta';
+
+/**
+ * Caminhos que precisam estar abertos para que a página atual apareça na
+ * árvore: `/c/bestiario`, `/c/bestiario/dragoes`, e assim por diante.
+ */
+function ancestrais(pathname: string): string[] {
+  const partes = pathname.replace(/\/+$/, '').split('/').filter(Boolean);
+  if (partes[0] !== 'c') return [];
+  const saida: string[] = [];
+  for (let i = 2; i <= partes.length; i += 1) saida.push(`/${partes.slice(0, i).join('/')}`);
+  return saida;
+}
+
+/**
+ * A chave que abre e fecha um galho.
+ *
+ * É botão separado do link de propósito: o nome leva ao documento, a chave só
+ * mostra o que há dentro. Sem isso, ver o conteúdo de uma pasta obrigaria a
+ * navegar até ela.
+ */
+function Chave({
+  aberto,
+  rotulo,
+  alternar,
+}: {
+  aberto: boolean;
+  rotulo: string;
+  alternar: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="railnav__chave"
+      aria-expanded={aberto}
+      aria-label={`${aberto ? 'Recolher' : 'Abrir'} ${rotulo}`}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        alternar();
+      }}
+    >
+      <ChevronRight size={13} aria-hidden="true" />
+    </button>
+  );
+}
+
 /** Entidades da categoria, aninhadas como estão no acervo. */
 function NavDocs({
   docs,
   base,
   pathname,
+  abertos,
+  alternar,
 }: {
   docs: NavDoc[];
   base: string;
   pathname: string;
+  abertos: Set<string>;
+  alternar: (chave: string) => void;
 }) {
   return (
     <ul className="railnav__sub">
       {docs.map((doc) => {
         const docHref = `${base}/${doc.slug}`;
+        const temFilhos = doc.children.length > 0;
+        const aberto = abertos.has(docHref);
         return (
           <li key={doc.slug}>
-            <Link
-              className="railnav__sublink"
-              href={docHref}
-              aria-current={pathname === docHref || pathname === `${docHref}/` ? 'page' : undefined}
-            >
-              {doc.title}
-            </Link>
-            {doc.children.length > 0 ? (
-              <NavDocs docs={doc.children} base={base} pathname={pathname} />
+            <span className="railnav__linha">
+              {temFilhos ? (
+                <Chave aberto={aberto} rotulo={doc.title} alternar={() => alternar(docHref)} />
+              ) : (
+                <span className="railnav__chave railnav__chave--vazia" aria-hidden="true" />
+              )}
+              <Link
+                className="railnav__sublink"
+                href={docHref}
+                aria-current={pathname === docHref || pathname === `${docHref}/` ? 'page' : undefined}
+              >
+                {doc.title}
+              </Link>
+            </span>
+            {temFilhos && aberto ? (
+              <NavDocs
+                docs={doc.children}
+                base={base}
+                pathname={pathname}
+                abertos={abertos}
+                alternar={alternar}
+              />
             ) : null}
           </li>
         );
@@ -88,6 +156,56 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
   const { theme, toggleTheme, nav: navMode, setNav, drawer, setDrawer } = useAppearance();
   const [search, setSearch] = useState(false);
   const wide = useWide();
+
+  // Começa vazio nos dois lados para a hidratação não divergir; o que estava
+  // guardado entra depois, junto com os ancestrais da página atual.
+  const [abertos, setAbertos] = useState<Set<string>>(new Set());
+  const carregado = useRef(false);
+
+  useEffect(() => {
+    let guardado: string[] = [];
+    try {
+      guardado = JSON.parse(localStorage.getItem(CHAVE_ABERTOS) ?? '[]');
+    } catch {
+      guardado = [];
+    }
+    setAbertos(new Set([...guardado, ...ancestrais(pathname)]));
+    carregado.current = true;
+    // Só na montagem: a partir daí o efeito seguinte cuida da navegação.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Navegar revela o caminho até a página, sem fechar o que o leitor abriu.
+  useEffect(() => {
+    setAbertos((atual) => {
+      const novo = new Set(atual);
+      let mudou = false;
+      for (const chave of ancestrais(pathname)) {
+        if (!novo.has(chave)) {
+          novo.add(chave);
+          mudou = true;
+        }
+      }
+      return mudou ? novo : atual;
+    });
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!carregado.current) return;
+    try {
+      localStorage.setItem(CHAVE_ABERTOS, JSON.stringify([...abertos]));
+    } catch {
+      /* sem armazenamento: a árvore ainda funciona, só não lembra. */
+    }
+  }, [abertos]);
+
+  const alternar = useCallback((chave: string) => {
+    setAbertos((atual) => {
+      const novo = new Set(atual);
+      if (!novo.delete(chave)) novo.add(chave);
+      return novo;
+    });
+  }, []);
 
   /** Barra lateral ocupando espaço próprio, sem cobrir o conteúdo. */
   const railFixed = wide && navMode === 'pinned';
@@ -233,20 +351,38 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
             <ul className="railnav__list">
               {nav.map((category) => {
                 const href = `/c/${category.slug}`;
-                const open = isActive(href);
+                const temDocs = category.docs.length > 0;
+                const aberto = abertos.has(href);
                 return (
                   <li key={category.slug}>
-                    <Link
-                      className="railnav__item"
-                      href={href}
-                      aria-current={pathname === href || pathname === `${href}/` ? 'page' : undefined}
-                    >
-                      <span className="railnav__num">{category.number}</span>
-                      <span>{category.title}</span>
-                      <span className="railnav__count">{category.count || '—'}</span>
-                    </Link>
-                    {open && category.docs.length > 0 ? (
-                      <NavDocs docs={category.docs} base={href} pathname={pathname} />
+                    <span className="railnav__linha">
+                      {temDocs ? (
+                        <Chave
+                          aberto={aberto}
+                          rotulo={category.title}
+                          alternar={() => alternar(href)}
+                        />
+                      ) : (
+                        <span className="railnav__chave railnav__chave--vazia" aria-hidden="true" />
+                      )}
+                      <Link
+                        className="railnav__item"
+                        href={href}
+                        aria-current={pathname === href || pathname === `${href}/` ? 'page' : undefined}
+                      >
+                        <span className="railnav__num">{category.number}</span>
+                        <span>{category.title}</span>
+                        <span className="railnav__count">{category.count || '—'}</span>
+                      </Link>
+                    </span>
+                    {temDocs && aberto ? (
+                      <NavDocs
+                        docs={category.docs}
+                        base={href}
+                        pathname={pathname}
+                        abertos={abertos}
+                        alternar={alternar}
+                      />
                     ) : null}
                   </li>
                 );
@@ -259,6 +395,8 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
             <ul className="railnav__list">
               {MAIN_LINKS.map((link) => (
                 <li key={link.href}>
+                  <span className="railnav__linha">
+                  <span className="railnav__chave railnav__chave--vazia" aria-hidden="true" />
                   <Link
                     className="railnav__item"
                     href={link.href}
@@ -266,6 +404,7 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
                   >
                     <span>{link.label}</span>
                   </Link>
+                  </span>
                 </li>
               ))}
             </ul>
