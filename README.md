@@ -17,7 +17,7 @@ numeradas, marcadores de confiabilidade) e gera páginas estáticas.
 |---|---|---|
 | Next.js 15 (App Router) | framework | Export estático — roda no GitHub Pages sem servidor. |
 | TypeScript | tipos | O modelo do acervo é descrito em `src/lib/breach/types.ts`. |
-| Sass (`.scss`) | estilo | Sem Tailwind. Tokens em custom properties; a aparência fica isolada em `_skin.scss`. |
+| Sass (`.sass`) | estilo | Sintaxe indentada, sem chaves. Sem Tailwind. Tokens em custom properties; a aparência fica isolada em `_skin.sass`. |
 | lucide-react | ícones | — |
 | unified / remark / rehype | markdown → HTML | Tabelas GFM e três transformações próprias (ver abaixo). |
 | fuse.js | busca | Índice gerado no build, busca no navegador, sem servidor. |
@@ -76,6 +76,33 @@ Há também tema claro e escuro, independente disso.
 
 ---
 
+## Ilustrações
+
+As aquarelas geradas vêm com o papel do gerador, que quase nunca bate com o
+papel da página. `ferramentas/aquarela.py` desfaz essa mistura:
+
+```bash
+python3 ferramentas/aquarela.py capa.jpg --aparar
+```
+
+Não é recorte de fundo. Uma aquarela é pigmento translúcido *sobre* papel, e
+recortar por semelhança de cor destrói justamente as aguadas claras. A
+ferramenta assume `observado = pigmento · cobertura + papel · (1 - cobertura)`,
+estima a cobertura pelo canal que mais escureceu em relação ao papel e recupera
+o pigmento. Sai um PNG com transparência real: sobre qualquer fundo, a tinta se
+comporta como se comportaria sobre aquele papel.
+
+A cor do papel é medida nas bordas da imagem; `--papel '#fcf9ed'` força um
+valor. `--ganho` acima de 1 deixa a tinta mais densa, `--limpar` define abaixo
+de que cobertura o pixel vira transparente puro.
+
+O limite é físico, não da ferramenta: aquarela sobre fundo escuro fica opaca,
+porque tinta translúcida precisa de papel claro por baixo. Por isso, no tema
+escuro, as ilustrações do conteúdo recebem um passe-partout de papel (`--mat`),
+como uma estampa colada na página.
+
+---
+
 ## Rodar localmente
 
 ```bash
@@ -115,8 +142,10 @@ acervo avisa que mudou.
    escopo fino com permissão `Contents: Read` em `Lx-xz/breach`. Sem ele o build
    para com mensagem explicando o que falta.
 2. **Pages no modo GitHub Actions** — em *Settings › Pages › Source: GitHub
-   Actions*. Isto precisa ser feito à mão: o token padrão das Actions não tem
-   permissão para ligar o Pages sozinho.
+   Actions*. Só à mão: criar o site do Pages exige permissão de administração
+   do repositório, que o token automático das Actions nunca tem. Testado com o
+   repositório público — o GitHub responde `Resource not accessible by
+   integration` de qualquer forma.
 3. **Segredo `SITE_DISPATCH_TOKEN` no repositório do acervo** *(opcional)* — um
    token com permissão de escrita em Actions aqui, para que um commit no acervo
    dispare a reconstrução do site em minutos em vez de esperar o build diário.

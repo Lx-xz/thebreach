@@ -193,8 +193,11 @@ export function DocArticle({ doc, backlinks = [] }: { doc: BreachDoc; backlinks?
   const derived = doc.header.documentosDerivados.filter((ref) => ref.href);
 
   return (
-    <div className="doclayout">
-      <article className="doc">
+    <>
+      {/* Metadados fora da coluna de leitura: assim o sumário pode ficar ao
+          lado do texto em telas largas e logo acima dele nas estreitas, sem
+          nunca se meter entre o título e a ficha do documento. */}
+      <div className="doc__head">
         <div className="doc__meta">
           {doc.header.classificacao ? <Chip label="Classificação" value={doc.header.classificacao} /> : null}
           {doc.header.status ? <Chip label="Status" value={doc.header.status} status /> : null}
@@ -207,10 +210,11 @@ export function DocArticle({ doc, backlinks = [] }: { doc: BreachDoc; backlinks?
         <div className="doc__gauge">
           <MarkerMeter tally={doc.markers} />
         </div>
+      </div>
 
-        <Toc items={tocItems} />
-
-        {doc.introHtml ? (
+      <div className="doclayout">
+        <article className="doc">
+          {doc.introHtml ? (
           <div className="doc__intro prose" dangerouslySetInnerHTML={{ __html: doc.introHtml }} />
         ) : null}
 
@@ -263,13 +267,16 @@ export function DocArticle({ doc, backlinks = [] }: { doc: BreachDoc; backlinks?
           </div>
         )}
 
-        <p className="card__foot" style={{ marginTop: 'var(--space-6)' }}>
-          <GitBranch size={14} aria-hidden="true" />
-          <a href={doc.githubUrl} target="_blank" rel="noreferrer noopener">
-            Ver <code>{doc.path}</code> no repositório
-          </a>
-        </p>
-      </article>
-    </div>
+          <p className="card__foot" style={{ marginTop: 'var(--space-6)' }}>
+            <GitBranch size={14} aria-hidden="true" />
+            <a href={doc.githubUrl} target="_blank" rel="noreferrer noopener">
+              Ver <code>{doc.path}</code> no repositório
+            </a>
+          </p>
+        </article>
+
+        <Toc items={tocItems} />
+      </div>
+    </>
   );
 }
