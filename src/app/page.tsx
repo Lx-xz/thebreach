@@ -4,36 +4,44 @@ import { getCompendium } from '@/lib/breach/api';
 import {
   CategoryCard,
   Chip,
-  DocCard,
+  DocSections,
+  Hero,
   MarkerLegend,
   PageHead,
 } from '@/components/content';
 import { MARKERS, MARKER_ORDER } from '@/lib/breach/markers';
 
+/**
+ * Página inicial. O texto é o README da raiz do acervo, renderizado como
+ * qualquer outro documento; entre a abertura e as seções entram os números e
+ * a grade de categorias, que são do site e não do acervo.
+ */
 export default async function HomePage() {
   const compendium = await getCompendium();
-  const { stats } = compendium;
-
-  const recentDocs = compendium.docs
-    .filter((doc) => doc.kind === 'entrada')
-    .sort((a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''))
-    .slice(0, 3);
-
+  const { stats, readme } = compendium;
   const lastChange = compendium.changelog[0];
 
   return (
     <div className="stack">
-      <PageHead
-        eyebrow="Compêndio"
-        title="Um universo documentado em duas camadas"
-        lede="O que é verdade no mundo e o que os habitantes acreditam saber sobre ele estão registrados lado a lado. Onde eles erram, o erro fica documentado como dado."
-      >
-        <div className="chips">
-          <Chip label="Fonte" value={`${compendium.source.owner}/${compendium.source.repo}`} icon={<BookMarked size={13} />} />
-          {stats.updatedAt ? <Chip label="Última atualização" value={stats.updatedAt} /> : null}
-          <Chip label="Codinome" value="Breach — provisório" />
-        </div>
-      </PageHead>
+      {readme?.hero ? <Hero src={readme.hero} alt="Vista das montanhas do mundo conhecido, com um dragão em voo" /> : null}
+
+      <div>
+        <PageHead eyebrow="Acervo" title={readme?.title ?? 'Compêndio Breach'}>
+          <div className="chips">
+            <Chip
+              label="Fonte"
+              value={`${compendium.source.owner}/${compendium.source.repo}`}
+              icon={<BookMarked size={13} aria-hidden="true" />}
+            />
+            {readme?.header.status ? <Chip label="Status" value={readme.header.status} status /> : null}
+            {stats.updatedAt ? <Chip label="Última atualização" value={stats.updatedAt} /> : null}
+          </div>
+        </PageHead>
+
+        {readme?.introHtml ? (
+          <div className="doc__intro prose" dangerouslySetInnerHTML={{ __html: readme.introHtml }} />
+        ) : null}
+      </div>
 
       <section className="stats">
         <div className="stat">
@@ -72,21 +80,10 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {recentDocs.length > 0 ? (
-        <section>
-          <div className="section-title">
-            <h2>Registros recentes</h2>
-          </div>
-          <div className="grid grid--wide">
-            {recentDocs.map((doc) => (
-              <DocCard
-                key={doc.path}
-                doc={doc}
-                category={compendium.categories.find((category) => category.slug === doc.categorySlug)}
-              />
-            ))}
-          </div>
-        </section>
+      {readme ? (
+        <article className="doc">
+          <DocSections sections={readme.sections} />
+        </article>
       ) : null}
 
       <section>

@@ -14,14 +14,23 @@ import type {
   IndexEntry,
   SearchRecord,
 } from './types';
-import { listMarkdownFiles, readMarkdown, REPO_URL, SOURCE, sourceDescription, githubUrlFor } from './source';
+import {
+  githubUrlFor,
+  listMarkdownFiles,
+  listRepoFiles,
+  readMarkdown,
+  REPO_URL,
+  SOURCE,
+  sourceDescription,
+} from './source';
+import { ilustracaoDe } from './imagens';
 import { labelFromPath, listItemsUnder, parseDocument, tableRows } from './parse';
 import { renderMarkdown, toPlainText } from './markdown';
 import { mergeTallies, tallyTotal } from './markers';
 import { hrefForPath, parseCategoryDir, slugify } from './slug';
 
-/** Arquivos que não viram página. */
-const EXCLUDED = new Set(['CLAUDE.md', 'README.md']);
+/** Arquivos que não viram página. O README da raiz vira a página inicial. */
+const EXCLUDED = new Set(['CLAUDE.md']);
 const META_DIR = '00-meta';
 
 function isEmptyRow(cells: string[]): boolean {
@@ -126,6 +135,8 @@ async function parseChangelog(markdown: string): Promise<ChangelogEntry[]> {
 }
 
 async function build(): Promise<Compendium> {
+  const todos = await listRepoFiles();
+  const acervo = new Set(todos);
   const files = (await listMarkdownFiles()).filter((file) => !EXCLUDED.has(file));
   const raws = new Map<string, string>();
   await Promise.all(
@@ -137,6 +148,10 @@ async function build(): Promise<Compendium> {
   const docs = await Promise.all(
     files.map((file) => parseDocument(file, raws.get(file) as string)),
   );
+  for (const doc of docs) {
+    doc.hero = ilustracaoDe(doc.path, acervo);
+  }
+
   const byPath = new Map(docs.map((doc) => [doc.path, doc]));
 
   // Segunda passagem: agora que todos os títulos são conhecidos, os links
@@ -171,6 +186,7 @@ async function build(): Promise<Compendium> {
       gaps: listItemsUnder(readmeRaw, /lacunas/i),
       githubUrl: `${REPO_URL}/tree/${SOURCE.ref}/${dir}`,
       updatedAt: readme?.updatedAt ?? null,
+      hero: readme?.hero ?? null,
     };
   });
 
@@ -188,6 +204,7 @@ async function build(): Promise<Compendium> {
     changelog: await parseChangelog(changelogRaw),
     conventions: byPath.get(`${META_DIR}/CONVENCOES.md`) ?? null,
     indexDoc: byPath.get(`${META_DIR}/INDICE-CANONICO.md`) ?? null,
+    readme: byPath.get('README.md') ?? null,
     priorityGaps,
     contradictions,
     stats: {

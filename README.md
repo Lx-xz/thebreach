@@ -78,6 +78,25 @@ Há também tema claro e escuro, independente disso.
 
 ## Ilustrações
 
+As imagens moram no acervo, sob `imagens/`, espelhando o caminho do documento
+que ilustram:
+
+```
+README.md                       → imagens/README.png
+04-bestiario/dragao-barbado.md  → imagens/04-bestiario/dragao-barbado.png
+04-bestiario/README.md          → imagens/04-bestiario/README.png
+```
+
+O documento que tiver uma imagem nesse caminho ganha uma abertura ilustrada.
+Imagens citadas dentro do texto seguem a mesma pasta — `![legenda](imagens/…)`
+a partir da raiz do acervo — e viram figura com legenda.
+
+Como o acervo é privado, o navegador não consegue buscá-las de lá.
+`npm run imagens` (que roda sozinho antes de `dev` e de `build`) copia tudo o
+que estiver sob `imagens/` para `public/acervo/`, e é de lá que o site serve.
+
+### Tirando o papel das aquarelas
+
 As aquarelas geradas vêm com o papel do gerador, que quase nunca bate com o
 papel da página. `ferramentas/aquarela.py` desfaz essa mistura:
 

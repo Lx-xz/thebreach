@@ -8,6 +8,20 @@ import { Toc, type TocItem } from './Toc';
 
 /* --- Blocos de página ---------------------------------------------------- */
 
+/**
+ * Ilustração de abertura. As aquarelas do acervo vêm com o papel removido,
+ * então assentam direto sobre o fundo da página.
+ */
+export function Hero({ src, alt }: { src: string; alt: string }) {
+  return (
+    <figure className="hero">
+      {/* Export estático: imagem simples, sem o otimizador do Next. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className="hero__art" src={src} alt={alt} />
+    </figure>
+  );
+}
+
 export function PageHead({
   eyebrow,
   title,
@@ -180,6 +194,17 @@ function Section({ section }: { section: DocSection }) {
         </div>
       ))}
     </section>
+  );
+}
+
+/** As seções de um documento, sem a ficha nem o sumário. */
+export function DocSections({ sections }: { sections: DocSection[] }) {
+  return (
+    <>
+      {sections.map((section) => (
+        <Section key={section.id} section={section} />
+      ))}
+    </>
   );
 }
 

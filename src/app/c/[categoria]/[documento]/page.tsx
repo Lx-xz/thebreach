@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getBacklinks, getCategories, getCategory, getDoc } from '@/lib/breach/api';
-import { Crumbs, DocArticle, PageHead } from '@/components/content';
+import { Crumbs, DocArticle, Hero, PageHead } from '@/components/content';
 
 type Params = { categoria: string; documento: string };
 
@@ -33,6 +33,7 @@ export default async function DocPage({ params }: { params: Promise<Params> }) {
 
   return (
     <div>
+      {doc.hero ? <Hero src={doc.hero} alt={`Ilustração — ${doc.title}`} /> : null}
       <Crumbs
         trail={[
           { href: '/', label: 'Compêndio' },
