@@ -308,6 +308,12 @@
   flex-direction: column
   border-left: 1px solid var(--border)
 
+// Espécies debaixo da classe: recuo menor, para o segundo nível não empurrar
+// o texto até a borda da barra.
+.railnav__sub .railnav__sub
+  margin-bottom: 0
+  padding-left: var(--space-4)
+
 .railnav__sublink
   padding: 0.3rem var(--space-3)
   font-size: var(--step--1)

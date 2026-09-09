@@ -2,8 +2,11 @@
  * Traz as ilustrações do acervo para dentro do site, antes do build.
  *
  * O repositório `breach` é privado: o navegador não consegue buscar as imagens
- * dele. Este script copia tudo o que estiver sob `imagens/` para
- * `public/acervo/imagens/`, de onde o site as serve como arquivos próprios.
+ * dele. Este script copia toda imagem do acervo para `public/acervo/`,
+ * preservando o caminho, de onde o site as serve como arquivos próprios.
+ *
+ * As imagens moram junto da entidade que ilustram (CONVENCOES.md §8), então não
+ * há uma pasta única a varrer: o critério é a extensão.
  *
  * Fontes, na mesma ordem do resto da camada de acesso:
  *   1. BREACH_LOCAL_PATH — pasta local com o acervo.
@@ -17,8 +20,12 @@ import path from 'node:path';
 const OWNER = process.env.BREACH_OWNER ?? 'Lx-xz';
 const REPO = process.env.BREACH_REPO ?? 'breach';
 const REF = process.env.BREACH_REF ?? 'main';
-const PASTA = 'imagens';
+const EXTENSOES = new Set(['png', 'webp', 'jpg', 'jpeg', 'avif', 'svg']);
 const DESTINO = path.join(process.cwd(), 'public', 'acervo');
+
+function ehImagem(caminho) {
+  return EXTENSOES.has(caminho.split('.').pop()?.toLowerCase() ?? '');
+}
 
 const local = process.env.BREACH_LOCAL_PATH ? path.resolve(process.env.BREACH_LOCAL_PATH) : null;
 const usandoLocal = Boolean(local && existsSync(local));
@@ -52,15 +59,13 @@ async function buscar(url, accept) {
 }
 
 async function listarLocal() {
-  const raiz = path.join(local, PASTA);
-  if (!existsSync(raiz)) return [];
   const achados = [];
   const andar = async (dir) => {
-    for (const entrada of await readdir(path.join(raiz, dir), { withFileTypes: true })) {
+    for (const entrada of await readdir(path.join(local, dir), { withFileTypes: true })) {
       if (entrada.name.startsWith('.')) continue;
       const rel = dir ? `${dir}/${entrada.name}` : entrada.name;
       if (entrada.isDirectory()) await andar(rel);
-      else achados.push(`${PASTA}/${rel}`);
+      else if (ehImagem(rel)) achados.push(rel);
     }
   };
   await andar('');
@@ -71,7 +76,7 @@ async function listarRemoto() {
   const url = `https://api.github.com/repos/${OWNER}/${REPO}/git/trees/${REF}?recursive=1`;
   const dados = await (await buscar(url, 'application/vnd.github+json')).json();
   return (dados.tree ?? [])
-    .filter((no) => no.type === 'blob' && no.path.startsWith(`${PASTA}/`))
+    .filter((no) => no.type === 'blob' && ehImagem(no.path))
     .map((no) => no.path);
 }
 

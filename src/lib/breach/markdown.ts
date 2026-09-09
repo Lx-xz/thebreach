@@ -4,7 +4,7 @@
  * Além da conversão padrão (com tabelas GFM, que o acervo usa bastante),
  * três transformações próprias fazem o acervo virar site:
  *  - marcadores `[CANÔNICO]` viram selos com a fonte interna destacada;
- *  - referências a arquivos `.md` viram links para as rotas do site;
+ *  - referências a documentos e entidades viram links para as rotas do site;
  *  - tabelas ganham um contêiner com rolagem própria.
  */
 
@@ -17,11 +17,18 @@ import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import rehypeStringify from 'rehype-stringify';
 import { visit } from 'unist-util-visit';
 import { toString as hastToString } from 'hast-util-to-string';
+import { VFile } from 'vfile';
 import type { Element, Root, RootContent } from 'hast';
 
 import { MARKERS, parseMarkerToken } from './markers';
-import { urlDaImagem } from './imagens';
+import { pastaDe, resolverRelativo, urlDaImagem } from './imagens';
 import { hrefForPath, looksLikeDocPath, withBase } from './slug';
+
+/** Pasta do documento em processamento, para resolver caminhos relativos. */
+function pastaDoArquivo(file: VFile): string {
+  const pasta = (file.data as { pasta?: string } | undefined)?.pasta;
+  return typeof pasta === 'string' ? pasta : '';
+}
 
 function textNode(value: string): RootContent {
   return { type: 'text', value } as RootContent;
@@ -64,18 +71,21 @@ function rehypeMarkers() {
 
 /**
  * Referências entre documentos.
- * `<code>04-bestiario/dragoes.md</code>` vira link, e links markdown para
- * arquivos `.md` passam a apontar para a rota equivalente do site.
+ * `<code>04-bestiario/dragoes/</code>` vira link, e links markdown para
+ * documentos do acervo passam a apontar para a rota equivalente do site.
  */
 function rehypeDocLinks() {
-  return (tree: Root): void => {
+  return (tree: Root, file: VFile): void => {
+    const pasta = pastaDoArquivo(file);
     visit(tree, 'element', (node: Element, indexInParent, parent) => {
       if (node.tagName === 'img') {
         const src = typeof node.properties?.src === 'string' ? node.properties.src : null;
         if (!src || /^(https?:|data:)/i.test(src)) return;
-        // As ilustrações são referidas a partir da raiz do acervo. Caminhos
-        // relativos ao documento (`../imagens/…`) chegam no mesmo lugar.
-        const noAcervo = src.replace(/^\.\//, '').replace(/^(\.\.\/)+/, '').replace(/^\//, '');
+        // CONVENCOES.md §8: as imagens são citadas por caminho relativo ao
+        // documento — é isso que as faz renderizar também no GitHub.
+        const noAcervo = src.startsWith('/')
+          ? src.slice(1)
+          : resolverRelativo(pasta, src);
         node.properties.src = urlDaImagem(noAcervo);
         node.properties.loading = 'lazy';
         node.properties.decoding = 'async';
@@ -170,9 +180,18 @@ const processor = unified()
   .use(rehypeTableWrapper)
   .use(rehypeStringify, { allowDangerousHtml: false });
 
-export async function renderMarkdown(markdown: string): Promise<string> {
+/**
+ * `caminhoDoDocumento` é o caminho no acervo do documento de onde o markdown
+ * saiu. É o que permite resolver as imagens citadas por caminho relativo.
+ */
+export async function renderMarkdown(
+  markdown: string,
+  caminhoDoDocumento = '',
+): Promise<string> {
   if (!markdown.trim()) return '';
-  const file = await processor.process(markdown);
+  const entrada = new VFile({ value: markdown });
+  entrada.data = { pasta: pastaDe(caminhoDoDocumento) };
+  const file = await processor.process(entrada);
   return String(file);
 }
 

@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { FolderOpen, ScrollText } from 'lucide-react';
 import { getCategories, getCategory } from '@/lib/breach/api';
-import { Chip, Crumbs, DocCard, Hero, PageHead } from '@/components/content';
+import { Chip, Crumbs, DocTree, Hero, PageHead } from '@/components/content';
 
 type Params = { categoria: string };
 
@@ -46,11 +46,7 @@ export default async function CategoryPage({ params }: { params: Promise<Params>
           <h2>Documentos</h2>
         </div>
         {category.docs.length > 0 ? (
-          <div className="grid grid--wide">
-            {category.docs.map((doc) => (
-              <DocCard key={doc.path} doc={doc} />
-            ))}
-          </div>
+          <DocTree nodes={category.tree} />
         ) : (
           <p className="empty">
             Categoria ainda vazia. Nenhum documento foi aberto aqui — nada é inventado para preencher.

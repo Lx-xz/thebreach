@@ -1,6 +1,12 @@
 import Link from 'next/link';
 import { FileText, GitBranch, Link2, ScrollText } from 'lucide-react';
-import type { BreachCategory, BreachDoc, DocSection, MarkerTally } from '@/lib/breach/types';
+import type {
+  BreachCategory,
+  BreachDoc,
+  DocNode,
+  DocSection,
+  MarkerTally,
+} from '@/lib/breach/types';
 import { MARKERS, MARKER_ORDER, tallyTotal } from '@/lib/breach/markers';
 import { accentFor } from '@/lib/layouts';
 import { slugify } from '@/lib/breach/slug';
@@ -158,6 +164,51 @@ export function DocCard({ doc, category }: { doc: BreachDoc; category?: BreachCa
         {doc.updatedAt ? <span style={{ marginLeft: 'auto' }}>{doc.updatedAt}</span> : null}
       </span>
     </Link>
+  );
+}
+
+/**
+ * Entidades de uma categoria, aninhadas como estão no acervo: as espécies
+ * aparecem debaixo da classe que as contém (CONVENCOES.md §6).
+ *
+ * Entidades sem filhas seguem em grade, lado a lado. Uma entidade com filhas
+ * abre bloco próprio, para o parentesco ficar visível.
+ */
+export function DocTree({ nodes }: { nodes: DocNode[] }) {
+  type Bloco =
+    | { tipo: 'folhas'; nodes: DocNode[] }
+    | { tipo: 'ramo'; node: DocNode };
+
+  const blocos: Bloco[] = [];
+  for (const node of nodes) {
+    if (node.children.length > 0) {
+      blocos.push({ tipo: 'ramo', node });
+      continue;
+    }
+    const ultimo = blocos[blocos.length - 1];
+    if (ultimo?.tipo === 'folhas') ultimo.nodes.push(node);
+    else blocos.push({ tipo: 'folhas', nodes: [node] });
+  }
+
+  return (
+    <div className="tree">
+      {blocos.map((bloco) =>
+        bloco.tipo === 'folhas' ? (
+          <div className="grid grid--wide" key={bloco.nodes[0].doc.path}>
+            {bloco.nodes.map((node) => (
+              <DocCard key={node.doc.path} doc={node.doc} />
+            ))}
+          </div>
+        ) : (
+          <div className="tree__ramo" key={bloco.node.doc.path}>
+            <DocCard doc={bloco.node.doc} />
+            <div className="tree__galhos">
+              <DocTree nodes={bloco.node.children} />
+            </div>
+          </div>
+        ),
+      )}
+    </div>
   );
 }
 

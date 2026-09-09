@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import { Cormorant_Garamond, Fraunces, Inter, Spectral } from 'next/font/google';
 import { AppearanceProvider } from '@/components/AppearanceProvider';
-import { AppShell, type NavCategory } from '@/components/AppShell';
+import { AppShell, type NavCategory, type NavDoc } from '@/components/AppShell';
+import type { DocNode } from '@/lib/breach/types';
 import { getCompendium, getSearchIndex } from '@/lib/breach/api';
 import { DEFAULT_NAV, STORAGE_KEYS } from '@/lib/layouts';
 import { BASE_PATH } from '@/lib/breach/slug';
@@ -61,12 +62,19 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const compendium = await getCompendium();
   const searchRecords = await getSearchIndex();
 
+  const navDocs = (nodes: DocNode[]): NavDoc[] =>
+    nodes.map((node) => ({
+      slug: node.doc.slug,
+      title: node.doc.title,
+      children: navDocs(node.children),
+    }));
+
   const nav: NavCategory[] = compendium.categories.map((category) => ({
     slug: category.slug,
     number: category.number,
     title: category.title,
     count: category.docs.length,
-    docs: category.docs.map((doc) => ({ slug: doc.slug, title: doc.title })),
+    docs: navDocs(category.tree),
   }));
 
   return (

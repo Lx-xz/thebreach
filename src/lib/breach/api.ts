@@ -11,6 +11,7 @@ import type {
   BreachDoc,
   ChangelogEntry,
   Compendium,
+  DocNode,
   IndexEntry,
   SearchRecord,
 } from './types';
@@ -127,11 +128,35 @@ async function parseChangelog(markdown: string): Promise<ChangelogEntry[]> {
     entries.push({
       date: match[1],
       title: match[2].trim(),
-      html: await renderMarkdown(clean),
+      html: await renderMarkdown(clean, `${META_DIR}/REGISTRO-DE-ALTERACOES.md`),
       plain: toPlainText(clean),
     });
   }
   return entries;
+}
+
+/**
+ * Aninha as entidades de uma categoria como estão no acervo: a espécie dentro
+ * da pasta da classe vira filha do documento da classe (CONVENCOES.md §6).
+ */
+function buildTree(entries: BreachDoc[]): DocNode[] {
+  const nodes = new Map<string, DocNode>();
+  for (const doc of entries) nodes.set(doc.slug, { doc, children: [] });
+
+  const roots: DocNode[] = [];
+  for (const node of nodes.values()) {
+    const corte = node.doc.slug.lastIndexOf('/');
+    const pai = corte === -1 ? null : nodes.get(node.doc.slug.slice(0, corte));
+    if (pai) pai.children.push(node);
+    else roots.push(node);
+  }
+
+  const ordenar = (lista: DocNode[]): DocNode[] => {
+    lista.sort((a, b) => a.doc.title.localeCompare(b.doc.title, 'pt-BR'));
+    for (const node of lista) ordenar(node.children);
+    return lista;
+  };
+  return ordenar(roots);
 }
 
 async function build(): Promise<Compendium> {
@@ -183,6 +208,7 @@ async function build(): Promise<Compendium> {
       description: readme ? toPlainText(readme.excerpt) : '',
       status: readme?.header.status ?? (entries.length ? 'em construção' : 'vazio'),
       docs: entries,
+      tree: buildTree(entries),
       gaps: listItemsUnder(readmeRaw, /lacunas/i),
       githubUrl: `${REPO_URL}/tree/${SOURCE.ref}/${dir}`,
       updatedAt: readme?.updatedAt ?? null,
