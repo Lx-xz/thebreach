@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  ChevronRight, Github, Moon, Pin, PinOff, PanelLeft, Search as SearchIcon, Sun, X,
+  ChevronRight, Github, Moon, PanelLeft, PanelRight, Pin, PinOff, Search as SearchIcon, Sun, X,
 } from 'lucide-react';
 import type { SearchRecord } from '@/lib/breach/types';
 import { useAppearance } from './AppearanceProvider';
@@ -168,7 +168,8 @@ function useWide(): boolean {
 
 export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
   const pathname = usePathname();
-  const { theme, toggleTheme, nav: navMode, setNav, drawer, setDrawer } = useAppearance();
+  const { theme, toggleTheme, nav: navMode, setNav, drawer, setDrawer, tools, toggleTools } =
+    useAppearance();
   const [search, setSearch] = useState(false);
   const wide = useWide();
 
@@ -304,8 +305,25 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
 
       {/* A segunda lateral. A da esquerda é o acervo; esta é o aparelho — tema
           e repositório. Os três links de meta saíram daqui de cima porque já
-          estão na navegação, e repetidos só faziam ruído. */}
+          estão na navegação, e repetidos só faziam ruído.
+
+          Como a da esquerda, abre e fecha: recolhida é uma faixa de ícones,
+          aberta mostra os rótulos. */}
       <aside className="utilrail" aria-label="Ferramentas do site">
+        <div className="utilrail__bar">
+          <p className="utilrail__label">Ferramentas</p>
+          <button
+            type="button"
+            className="utilrail__chave"
+            onClick={toggleTools}
+            aria-expanded={tools === 'open'}
+            aria-label={tools === 'open' ? 'Recolher as ferramentas' : 'Abrir as ferramentas'}
+            title={tools === 'open' ? 'Recolher as ferramentas' : 'Abrir as ferramentas'}
+          >
+            <PanelRight size={17} aria-hidden="true" />
+          </button>
+        </div>
+
         <button
           type="button"
           className="utilrail__tool"
@@ -314,6 +332,7 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
           title={theme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'}
         >
           {theme === 'dark' ? <Sun size={18} aria-hidden="true" /> : <Moon size={18} aria-hidden="true" />}
+          <span className="utilrail__nome">{theme === 'dark' ? 'Tema claro' : 'Tema escuro'}</span>
         </button>
         <a
           className="utilrail__tool"
@@ -324,6 +343,7 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
           title="Ver o acervo no GitHub"
         >
           <Github size={18} aria-hidden="true" />
+          <span className="utilrail__nome">No GitHub</span>
         </a>
       </aside>
 

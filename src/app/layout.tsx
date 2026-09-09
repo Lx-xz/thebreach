@@ -4,7 +4,7 @@ import { AppearanceProvider } from '@/components/AppearanceProvider';
 import { AppShell, type NavCategory, type NavDoc } from '@/components/AppShell';
 import type { DocNode } from '@/lib/breach/types';
 import { getCompendium, getSearchIndex } from '@/lib/breach/api';
-import { DEFAULT_NAV, STORAGE_KEYS } from '@/lib/layouts';
+import { DEFAULT_NAV, DEFAULT_TOOLS, STORAGE_KEYS } from '@/lib/layouts';
 import { BASE_PATH } from '@/lib/breach/slug';
 import '@/styles/main.sass';
 
@@ -56,6 +56,8 @@ var t=localStorage.getItem(${JSON.stringify(STORAGE_KEYS.theme)});
 if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){d.setAttribute('data-theme','dark');}
 var n=localStorage.getItem(${JSON.stringify(STORAGE_KEYS.nav)});
 if(n==='pinned'||n==='floating'){d.setAttribute('data-nav',n);}
+var f=localStorage.getItem(${JSON.stringify(STORAGE_KEYS.tools)});
+if(f==='open'||f==='closed'){d.setAttribute('data-tools',f);}
 }catch(e){}})();`;
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -82,6 +84,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       lang="pt-BR"
       data-theme="light"
       data-nav={DEFAULT_NAV}
+      data-tools={DEFAULT_TOOLS}
       className={`${cormorant.variable} ${fraunces.variable} ${inter.variable} ${spectral.variable}`}
       suppressHydrationWarning
     >

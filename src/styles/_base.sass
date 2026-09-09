@@ -64,6 +64,7 @@ body
   // Espaço reservado para a lateral direita, que é fixa: assim ela nunca cobre
   // o texto, e cabeçalho, corpo e rodapé param todos na mesma borda.
   padding-right: var(--util-w)
+  transition: padding-right 0.3s var(--ease), background-color 0.4s var(--ease), color 0.4s var(--ease)
   min-height: 100dvh
   background: var(--bg-app)
   color: var(--fg)
@@ -73,7 +74,6 @@ body
   font-synthesis-weight: none
   text-rendering: optimizeLegibility
   -webkit-font-smoothing: antialiased
-  transition: background-color 0.4s var(--ease), color 0.4s var(--ease)
 
 h1, h2, h3, h4, h5, h6
   margin: 0

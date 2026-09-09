@@ -344,11 +344,11 @@ a.card:hover, a.card:focus-visible
 
 // --- Ilustrações ----------------------------------------------------------
 // Aquarela é tinta translúcida: sobre fundo escuro ela some. No tema escuro a
-// arte recebe um passe-partout de papel, como uma estampa colada na página.
+// arte recebe papel por baixo — mas só o papel: a moldura de antes era
+// `padding`, e com `box-sizing: border-box` ela encolhia a própria imagem.
 
 [data-theme='dark'] .prose img
   background: var(--mat)
-  padding: var(--space-4)
   box-shadow: var(--shadow-s)
 
 // Abertura ilustrada. A aquarela já vem sem papel, então assenta direto sobre
@@ -365,6 +365,5 @@ a.card:hover, a.card:focus-visible
 
 [data-theme='dark'] .hero__art
   background: var(--mat)
-  padding: var(--space-4)
   border-radius: var(--radius-m)
   box-shadow: var(--shadow-s)

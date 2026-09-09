@@ -7,13 +7,22 @@ export const DEFAULT_THEME: ThemeId = 'light';
 export type NavMode = 'pinned' | 'floating';
 export const DEFAULT_NAV: NavMode = 'pinned';
 
+/** A lateral direita — tema e repositório — aberta com rótulos ou recolhida. */
+export type ToolsMode = 'open' | 'closed';
+export const DEFAULT_TOOLS: ToolsMode = 'closed';
+
 export const STORAGE_KEYS = {
   theme: 'breach:theme',
   nav: 'breach:nav',
+  tools: 'breach:tools',
 } as const;
 
 export function isNavMode(value: unknown): value is NavMode {
   return value === 'pinned' || value === 'floating';
+}
+
+export function isToolsMode(value: unknown): value is ToolsMode {
+  return value === 'open' || value === 'closed';
 }
 
 /** Cor pastel de destaque de cada categoria, usada nos cartões. */

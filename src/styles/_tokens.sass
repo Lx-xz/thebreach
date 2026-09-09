@@ -113,14 +113,20 @@
   --shadow-m: 0 2px 6px rgba(43, 38, 33, 0.07), 0 12px 30px rgba(43, 38, 33, 0.08)
   --shadow-l: 0 20px 60px rgba(43, 38, 33, 0.14)
 
-  --page-max: 1400px
+  // Sem teto: as duas laterais encostam nas bordas da janela e a coluna de
+  // leitura se centra no que sobra. Com um teto, a lateral direita — que é
+  // fixa na janela — ficava desalinhada de todo o resto.
+  --page-max: none
   --sidebar-w: 15.5rem
-  // Lateral direita: só a largura de um botão. O espaço dela é reservado no
-  // `body`, para a faixa fixa nunca cobrir o texto.
+  // Lateral direita, recolhida e aberta. O espaço dela é reservado no `body`,
+  // para a faixa fixa nunca cobrir o texto.
   --util-w: 2.9rem
+  --util-w-open: 11.5rem
   --toc-w: 14rem
-  // Largura da coluna de leitura, independente da barra lateral.
-  --column-w: 50rem
+  // Largura da coluna de leitura, independente da barra lateral. Cresce em
+  // tela larga para o texto não ficar ilhado no meio de muito branco, mas com
+  // teto: linha comprida demais é linha que se perde na volta.
+  --column-w: clamp(50rem, 46vw, 58rem)
 
   // Superfícies derivadas — cada layout redefine
   --bg-app: var(--paper-1)
