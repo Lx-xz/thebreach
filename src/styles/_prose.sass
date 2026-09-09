@@ -1,0 +1,208 @@
+@use 'mixins' as *
+
+// ---------------------------------------------------------------------------
+// Prosa — HTML gerado a partir do markdown do acervo.
+// ------------------------------------------------------------------------
+
+.prose
+  font-size: var(--step-0)
+  line-height: var(--leading)
+  color: var(--ink-2)
+
+  > * + *
+    margin-top: var(--space-4)
+
+  > h2, > h3, > h4
+    margin-top: var(--space-6)
+    color: var(--fg)
+
+  h2
+    font-size: var(--step-2)
+  h3
+    font-size: var(--step-1)
+  h4
+    font-size: var(--step-0)
+    text-transform: uppercase
+    letter-spacing: 0.08em
+    font-family: var(--font-sans)
+    color: var(--fg-muted)
+
+  strong
+    color: var(--fg)
+    font-weight: 650
+
+  em
+    font-style: italic
+
+  ul, ol
+    padding-left: 1.35em
+
+  li + li
+    margin-top: var(--space-2)
+
+  li::marker
+    color: var(--ink-4)
+
+  blockquote
+    padding-left: var(--space-5)
+    border-left: 2px solid var(--accent)
+    color: var(--fg-muted)
+    font-style: italic
+
+  code:not(.doc-ref code)
+    padding: 0.12em 0.4em
+    background: var(--paper-3)
+    border-radius: var(--radius-s)
+    color: var(--ink-2)
+
+  pre
+    padding: var(--space-4)
+    overflow-x: auto
+    background: var(--paper-3)
+    border: 1px solid var(--border)
+    border-radius: var(--radius-m)
+
+    code
+      background: none
+      padding: 0
+
+  img
+    display: block
+    width: 100%
+    height: auto
+    margin-inline: auto
+    border-radius: var(--radius-m)
+
+  figure
+    margin-block: var(--space-6)
+
+  figcaption
+    margin-top: var(--space-3)
+    font-size: var(--step--2)
+    font-style: italic
+    color: var(--ink-4)
+    text-align: center
+
+  a:not(.heading-anchor)
+    color: var(--accent-ink)
+    text-decoration: underline
+    text-decoration-thickness: 1px
+    text-decoration-color: color-mix(in srgb, var(--accent) 55%, transparent)
+
+  .heading-anchor
+    text-decoration: none
+    color: inherit
+
+// Tabelas do acervo, com rolagem própria.
+.md-table
+  overflow-x: auto
+  border: 1px solid var(--border)
+  border-radius: var(--radius-m)
+  background: var(--bg-raised)
+
+  table
+    width: 100%
+    border-collapse: collapse
+    font-size: var(--step--1)
+
+  th, td
+    padding: var(--space-3) var(--space-4)
+    text-align: left
+    vertical-align: top
+    border-bottom: 1px solid var(--border)
+
+  th
+    font-family: var(--font-sans)
+    font-size: var(--step--2)
+    text-transform: uppercase
+    letter-spacing: 0.08em
+    color: var(--fg-muted)
+    background: color-mix(in srgb, var(--paper-3) 60%, transparent)
+    white-space: nowrap
+
+  tbody tr:last-child td
+    border-bottom: 0
+
+  tbody tr:hover td
+    background: color-mix(in srgb, var(--accent-soft) 45%, transparent)
+
+// Referência a outro documento do acervo.
+.doc-ref
+  text-decoration: none
+
+  code
+    padding: 0.1em 0.45em
+    border: 1px solid var(--border)
+    border-radius: var(--radius-pill)
+    background: var(--bg-raised)
+    color: var(--fg-muted)
+    transition: border-color 0.2s var(--ease), color 0.2s var(--ease)
+
+  &:hover code
+    border-color: var(--accent)
+    color: var(--accent-ink)
+
+.link-external::after
+  content: '↗'
+  margin-left: 0.15em
+  font-size: 0.8em
+  vertical-align: 0.25em
+  opacity: 0.65
+
+// ---------------------------------------------------------------------------
+// Marcadores de confiabilidade
+// ------------------------------------------------------------------------
+
+.marker
+  display: inline-flex
+  align-items: baseline
+  gap: 0.4em
+  padding: 0.14em 0.62em
+  margin-right: 0.15em
+  border: 1px solid var(--m-bd)
+  border-radius: var(--radius-pill)
+  background: var(--m-bg)
+  color: var(--m-fg)
+  font-family: var(--font-sans)
+  font-size: 0.66em
+  font-weight: 620
+  letter-spacing: 0.09em
+  text-transform: uppercase
+  white-space: nowrap
+  vertical-align: 0.12em
+  cursor: help
+
+.marker__source
+  font-weight: 480
+  letter-spacing: 0.02em
+  text-transform: none
+  opacity: 0.85
+
+  &::before
+    content: '· '
+
+.marker--canonico
+  --m-bg: var(--m-canonico-bg)
+  --m-fg: var(--m-canonico-fg)
+  --m-bd: var(--m-canonico-bd)
+.marker--atestado
+  --m-bg: var(--m-atestado-bg)
+  --m-fg: var(--m-atestado-fg)
+  --m-bd: var(--m-atestado-bd)
+.marker--crenca
+  --m-bg: var(--m-crenca-bg)
+  --m-fg: var(--m-crenca-fg)
+  --m-bd: var(--m-crenca-bd)
+.marker--disputado
+  --m-bg: var(--m-disputado-bg)
+  --m-fg: var(--m-disputado-fg)
+  --m-bd: var(--m-disputado-bd)
+.marker--lacuna
+  --m-bg: var(--m-lacuna-bg)
+  --m-fg: var(--m-lacuna-fg)
+  --m-bd: var(--m-lacuna-bd)
+  border-style: dashed
+.marker--proposta
+  --m-bg: var(--m-proposta-bg)
+  --m-fg: var(--m-proposta-fg)
+  --m-bd: var(--m-proposta-bd)

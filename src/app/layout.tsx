@@ -5,7 +5,7 @@ import { AppShell, type NavCategory } from '@/components/AppShell';
 import { getCompendium, getSearchIndex } from '@/lib/breach/api';
 import { DEFAULT_NAV, STORAGE_KEYS } from '@/lib/layouts';
 import { BASE_PATH } from '@/lib/breach/slug';
-import '@/styles/main.scss';
+import '@/styles/main.sass';
 
 const cormorant = Cormorant_Garamond({
   subsets: ['latin', 'latin-ext'],
