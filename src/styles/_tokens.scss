@@ -1,0 +1,186 @@
+/* ---------------------------------------------------------------------------
+   Tokens
+   Paleta pastel de pergaminho. Tudo em custom properties para que cada layout
+   e cada tema reescrevam apenas os valores, nunca as regras.
+   ------------------------------------------------------------------------ */
+
+:root {
+  color-scheme: light;
+
+  /* Papel e tinta */
+  --paper-0: #ffffff;
+  --paper-1: #fdfaf5;
+  --paper-2: #f8f2e9;
+  --paper-3: #f1e9dc;
+  --paper-4: #e7dcc9;
+
+  --ink-1: #2b2621;
+  --ink-2: #4a423a;
+  --ink-3: #6e6459;
+  --ink-4: #9a8f82;
+
+  --line: rgba(43, 38, 33, 0.14);
+  --line-strong: rgba(43, 38, 33, 0.28);
+
+  /* Acentos pastéis */
+  --sage: #8fae95;
+  --rose: #d3a0a0;
+  --peri: #9fa9d6;
+  --amber: #d9a75c;
+  --lilac: #b9a6d4;
+  --teal: #86b6b0;
+
+  --accent: #8b7d5e;
+  --accent-soft: #f3ead6;
+  --accent-ink: #6b5c3c;
+
+  /* Marcadores de confiabilidade */
+  --m-canonico-bg: #f7e9cd;
+  --m-canonico-fg: #7a5312;
+  --m-canonico-bd: #e2c68e;
+
+  --m-atestado-bg: #dfebe0;
+  --m-atestado-fg: #3f6248;
+  --m-atestado-bd: #aecdb4;
+
+  --m-crenca-bg: #eae1f3;
+  --m-crenca-fg: #5c4780;
+  --m-crenca-bd: #cbb8e0;
+
+  --m-disputado-bg: #f7e1df;
+  --m-disputado-fg: #8a4442;
+  --m-disputado-bd: #e5b9b5;
+
+  --m-lacuna-bg: transparent;
+  --m-lacuna-fg: #857a6b;
+  --m-lacuna-bd: #c6b9a6;
+
+  --m-proposta-bg: #dceded;
+  --m-proposta-fg: #2f6660;
+  --m-proposta-bd: #a6d0cb;
+
+  /* Estados */
+  --status-estavel: var(--sage);
+  --status-revisao: var(--amber);
+  --status-rascunho: var(--peri);
+  --status-vazio: var(--ink-4);
+
+  /* Tipografia */
+  --font-display: var(--font-cormorant), Georgia, "Times New Roman", serif;
+  --font-display-alt: var(--font-fraunces), Georgia, serif;
+  --font-serif: var(--font-spectral), Georgia, serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", "JetBrains Mono", Menlo, monospace;
+
+  --font-body: var(--font-sans);
+  --font-heading: var(--font-display);
+
+  --step--2: clamp(0.7rem, 0.68rem + 0.1vw, 0.76rem);
+  --step--1: clamp(0.82rem, 0.79rem + 0.15vw, 0.9rem);
+  --step-0: clamp(0.98rem, 0.94rem + 0.2vw, 1.06rem);
+  --step-1: clamp(1.15rem, 1.08rem + 0.35vw, 1.35rem);
+  --step-2: clamp(1.4rem, 1.28rem + 0.6vw, 1.8rem);
+  --step-3: clamp(1.75rem, 1.5rem + 1.2vw, 2.6rem);
+  --step-4: clamp(2.1rem, 1.6rem + 2.4vw, 3.8rem);
+  --step-5: clamp(2.6rem, 1.7rem + 4vw, 5.4rem);
+
+  --measure: 68ch;
+  --leading: 1.68;
+
+  /* Ritmo e forma */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4.5rem;
+
+  --radius-s: 4px;
+  --radius-m: 10px;
+  --radius-l: 18px;
+  --radius-pill: 999px;
+
+  --shadow-s: 0 1px 2px rgba(43, 38, 33, 0.06), 0 2px 8px rgba(43, 38, 33, 0.04);
+  --shadow-m: 0 2px 6px rgba(43, 38, 33, 0.07), 0 12px 30px rgba(43, 38, 33, 0.08);
+  --shadow-l: 0 20px 60px rgba(43, 38, 33, 0.14);
+
+  --page-max: 1320px;
+  --sidebar-w: 16.5rem;
+  --toc-w: 15rem;
+
+  /* Superfícies derivadas — cada layout redefine */
+  --bg-app: var(--paper-2);
+  --bg-surface: var(--paper-1);
+  --bg-raised: var(--paper-0);
+  --fg: var(--ink-1);
+  --fg-muted: var(--ink-3);
+  --border: var(--line);
+
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --paper-0: #211d1b;
+  --paper-1: #1c1917;
+  --paper-2: #171412;
+  --paper-3: #2a2522;
+  --paper-4: #362f2a;
+
+  --ink-1: #f0e7da;
+  --ink-2: #dbd0c1;
+  --ink-3: #ab9f8e;
+  --ink-4: #8a7f70;
+
+  --line: rgba(240, 231, 218, 0.14);
+  --line-strong: rgba(240, 231, 218, 0.28);
+
+  --sage: #97b89d;
+  --rose: #dcaaaa;
+  --peri: #adb6e0;
+  --amber: #e2b573;
+  --lilac: #c4b3dd;
+  --teal: #93c2bc;
+
+  --accent: #cbb78a;
+  --accent-soft: #332c22;
+  --accent-ink: #e6d3a8;
+
+  --m-canonico-bg: #3a2f18;
+  --m-canonico-fg: #f0d093;
+  --m-canonico-bd: #6d5723;
+
+  --m-atestado-bg: #23301f;
+  --m-atestado-fg: #b6d6ba;
+  --m-atestado-bd: #47603f;
+
+  --m-crenca-bg: #2c2438;
+  --m-crenca-fg: #cebbe6;
+  --m-crenca-bd: #55446e;
+
+  --m-disputado-bg: #3a2323;
+  --m-disputado-fg: #e8b4b1;
+  --m-disputado-bd: #6b3f3d;
+
+  --m-lacuna-bg: transparent;
+  --m-lacuna-fg: #9b8f7d;
+  --m-lacuna-bd: #4e463c;
+
+  --m-proposta-bg: #1e3230;
+  --m-proposta-fg: #a3d2cc;
+  --m-proposta-bd: #3f625d;
+
+  --shadow-s: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-m: 0 2px 6px rgba(0, 0, 0, 0.35), 0 12px 30px rgba(0, 0, 0, 0.35);
+  --shadow-l: 0 24px 70px rgba(0, 0, 0, 0.55);
+
+  --bg-app: var(--paper-2);
+  --bg-surface: var(--paper-1);
+  --bg-raised: var(--paper-3);
+  --fg: var(--ink-1);
+  --fg-muted: var(--ink-3);
+  --border: var(--line);
+}

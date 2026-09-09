@@ -1,0 +1,80 @@
+name: Publicar no GitHub Pages
+
+# O site é estático: o conteúdo do acervo é lido no build, não em runtime.
+# Por isso ele precisa ser reconstruído quando o acervo muda — daí o
+# repository_dispatch disparado pelo repositório breach e o horário diário
+# como rede de segurança.
+on:
+  push:
+    branches:
+      - main
+      - 'claude/**'
+  workflow_dispatch:
+  repository_dispatch:
+    types: [acervo-atualizado]
+  schedule:
+    - cron: '0 6 * * *'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Construir
+    runs-on: ubuntu-latest
+    steps:
+      - name: Obter o código do site
+        uses: actions/checkout@v4
+
+      - name: Preparar o Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Configurar o GitHub Pages
+        id: pages
+        uses: actions/configure-pages@v5
+        with:
+          # Liga o Pages no modo "GitHub Actions" na primeira execução.
+          enablement: true
+
+      - name: Verificar tipos
+        run: npm run typecheck
+
+      - name: Construir o site a partir do acervo
+        env:
+          # O acervo é um repositório privado: sem este segredo o build para
+          # com uma mensagem explicando o que falta.
+          BREACH_TOKEN: ${{ secrets.BREACH_TOKEN }}
+          BREACH_OWNER: Lx-xz
+          BREACH_REPO: breach
+          BREACH_REF: main
+          NEXT_PUBLIC_BASE_PATH: ${{ steps.pages.outputs.base_path }}
+        run: npm run build
+
+      - name: Enviar o artefato
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: out
+
+  deploy:
+    name: Publicar
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publicar no Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

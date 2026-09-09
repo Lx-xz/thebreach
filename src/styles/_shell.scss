@@ -1,0 +1,373 @@
+@use 'mixins' as *;
+
+/* ---------------------------------------------------------------------------
+   Casca comum. Um único DOM; cada layout reposiciona e reveste estas peças.
+   ------------------------------------------------------------------------ */
+
+.app {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- Cabeçalho ----------------------------------------------------------- */
+
+.masthead {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: color-mix(in srgb, var(--bg-app) 88%, transparent);
+  backdrop-filter: blur(14px) saturate(1.3);
+  border-bottom: 1px solid var(--border);
+}
+
+.masthead__inner {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: var(--space-3) var(--space-5);
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  text-decoration: none;
+  flex: 0 0 auto;
+}
+
+.brand__mark {
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: var(--radius-m);
+  background: var(--accent-soft);
+  border: 1px solid var(--border);
+  color: var(--accent-ink);
+  flex: 0 0 auto;
+}
+
+.brand__text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.brand__name {
+  font-family: var(--font-heading);
+  font-size: var(--step-1);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.brand__tag {
+  font-size: var(--step--2);
+  color: var(--fg-muted);
+  letter-spacing: 0.04em;
+
+  @include until(48rem) {
+    display: none;
+  }
+}
+
+.mainnav {
+  display: flex;
+  align-items: center;
+  flex: 0 1 auto;
+  min-width: 0;
+  gap: var(--space-1);
+  margin-inline-start: auto;
+
+  @include until(64rem) {
+    display: none;
+  }
+}
+
+.mainnav__link {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-pill);
+  font-size: var(--step--1);
+  color: var(--fg-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 0.2s var(--ease), color 0.2s var(--ease);
+
+  &:hover {
+    background: var(--accent-soft);
+    color: var(--accent-ink);
+  }
+
+  &[aria-current='page'] {
+    color: var(--fg);
+    background: var(--accent-soft);
+  }
+}
+
+.tools {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: var(--space-2);
+  margin-inline-start: auto;
+
+  .mainnav + & {
+    margin-inline-start: var(--space-3);
+  }
+}
+
+.tool {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-m);
+  border: 1px solid transparent;
+  color: var(--fg-muted);
+  text-decoration: none;
+  transition: background-color 0.2s var(--ease), color 0.2s var(--ease),
+    border-color 0.2s var(--ease);
+
+  &:hover {
+    background: var(--bg-raised);
+    border-color: var(--border);
+    color: var(--fg);
+  }
+}
+
+.tool--wide {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  width: auto;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  border-color: var(--border);
+  background: var(--bg-raised);
+  font-size: var(--step--1);
+
+  kbd {
+    padding: 0.05em 0.4em;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-s);
+    font-size: 0.8em;
+    color: var(--ink-4);
+  }
+
+  @include until(40rem) {
+    span,
+    kbd {
+      display: none;
+    }
+    width: 2.25rem;
+    padding: 0;
+  }
+}
+
+.tool--menu {
+  @include from(72rem) {
+    display: none;
+  }
+}
+
+/* --- Corpo --------------------------------------------------------------- */
+
+.frame {
+  flex: 1;
+  width: 100%;
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 0 var(--space-5);
+  display: grid;
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+  gap: var(--space-7);
+  align-items: start;
+
+  @include until(72rem) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+}
+
+.main {
+  min-width: 0;
+  padding-block: var(--space-7) var(--space-8);
+}
+
+/* --- Navegação lateral --------------------------------------------------- */
+
+.railnav {
+  position: sticky;
+  top: 5.2rem;
+  padding-block: var(--space-7);
+  max-height: calc(100dvh - 6rem);
+  overflow-y: auto;
+  scrollbar-width: thin;
+
+  @include until(72rem) {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 60;
+    width: min(21rem, 86vw);
+    max-height: none;
+    padding: var(--space-6) var(--space-5);
+    background: var(--bg-surface);
+    border-right: 1px solid var(--border);
+    box-shadow: var(--shadow-l);
+    transform: translateX(-102%);
+    transition: transform 0.32s var(--ease);
+
+    &[data-open='true'] {
+      transform: none;
+    }
+  }
+}
+
+.railnav__title {
+  font-family: var(--font-sans);
+  font-size: var(--step--2);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-4);
+  margin-bottom: var(--space-3);
+}
+
+.railnav__group + .railnav__group {
+  margin-top: var(--space-6);
+}
+
+.railnav__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.railnav__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-m);
+  font-size: var(--step--1);
+  color: var(--ink-2);
+  text-decoration: none;
+  transition: background-color 0.18s var(--ease), color 0.18s var(--ease);
+
+  &:hover {
+    background: var(--bg-raised);
+    color: var(--fg);
+  }
+
+  &[aria-current='page'] {
+    background: var(--accent-soft);
+    color: var(--accent-ink);
+    font-weight: 600;
+  }
+}
+
+.railnav__num {
+  font-family: var(--font-mono);
+  font-size: var(--step--2);
+  color: var(--ink-4);
+  flex: 0 0 auto;
+}
+
+.railnav__count {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: var(--step--2);
+  color: var(--ink-4);
+}
+
+.railnav__sub {
+  list-style: none;
+  margin: var(--space-1) 0 var(--space-2);
+  padding-left: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--border);
+}
+
+.railnav__sublink {
+  padding: 0.28rem var(--space-3);
+  font-size: var(--step--1);
+  color: var(--fg-muted);
+  text-decoration: none;
+  border-radius: var(--radius-s);
+
+  &:hover {
+    color: var(--fg);
+    background: var(--bg-raised);
+  }
+
+  &[aria-current='page'] {
+    color: var(--accent-ink);
+    font-weight: 600;
+  }
+}
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(20, 16, 12, 0.45);
+  backdrop-filter: blur(2px);
+  border: 0;
+  width: 100%;
+
+  @include from(72rem) {
+    display: none;
+  }
+}
+
+/* --- Rodapé -------------------------------------------------------------- */
+
+.colophon {
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--paper-3) 45%, transparent);
+  margin-top: auto;
+}
+
+.colophon__inner {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: var(--space-7) var(--space-5);
+  display: grid;
+  gap: var(--space-6);
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  font-size: var(--step--1);
+  color: var(--fg-muted);
+}
+
+.colophon__title {
+  font-family: var(--font-sans);
+  font-size: var(--step--2);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-4);
+  margin-bottom: var(--space-3);
+}
+
+.colophon__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+
+  a {
+    text-decoration: none;
+
+    &:hover {
+      color: var(--fg);
+    }
+  }
+}
