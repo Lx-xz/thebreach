@@ -9,23 +9,24 @@
 // --- Cabeçalho de página -------------------------------------------------
 
 .pagehead
-  gap: var(--space-5)
-  margin-bottom: var(--space-8)
+  gap: var(--space-3)
+  margin-bottom: var(--space-7)
 
 .pagehead__eyebrow
-  letter-spacing: 0.26em
+  letter-spacing: 0.13em
 
 .pagehead__title
-  font-size: var(--step-5)
+  font-size: var(--step-4)
   font-weight: 400
-  line-height: 1.03
-  letter-spacing: -0.025em
+  line-height: 1.06
+  letter-spacing: -0.02em
 
 .pagehead__lede
   font-family: var(--font-serif)
   font-style: italic
   font-size: var(--step-1)
-  max-width: 46ch
+  line-height: var(--leading-lede)
+  max-width: 60ch
 
 .crumbs
   margin-bottom: var(--space-3)
@@ -50,16 +51,33 @@ a.chip:hover
 
 // --- Documento -----------------------------------------------------------
 
+.doc__head
+  display: flex
+  flex-wrap: wrap
+  align-items: center
+  justify-content: space-between
+  gap: var(--space-3) var(--space-5)
+  padding-bottom: var(--space-4)
+  border-bottom: 1px solid var(--border)
+  margin-bottom: var(--space-7)
+
 .doc__meta
   gap: var(--space-4)
-  margin-bottom: var(--space-3)
+  margin-bottom: 0
 
 .doc__gauge
-  padding-bottom: var(--space-6)
-  border-bottom: 1px solid var(--border)
+  flex: 0 1 13rem
+  display: flex
+  align-items: center
+  // A margem que ele tinha como bloco entra no cálculo do alinhamento e
+  // empurraria o filete para o topo da linha.
+  margin-bottom: 0
+  padding-bottom: 0
+  border-bottom: 0
 
 .doc__intro
   font-size: var(--step-1)
+  line-height: var(--leading-lede)
   margin-bottom: var(--space-7)
 
 .section + .section
@@ -303,7 +321,7 @@ a.card:hover, a.card:focus-visible
   background: none
 
 .panel__title
-  letter-spacing: 0.14em
+  letter-spacing: 0.12em
 
 .empty
   border-style: solid
@@ -329,12 +347,14 @@ a.card:hover, a.card:focus-visible
 // Abertura ilustrada. A aquarela já vem sem papel, então assenta direto sobre
 // o fundo da página; no tema escuro ela recebe o mesmo passe-partout.
 .hero
-  margin: 0 0 var(--space-7)
+  margin: 0 0 var(--space-6)
 
 .hero__art
   display: block
   width: 100%
+  max-height: min(58vh, 30rem)
   height: auto
+  object-fit: contain
 
 [data-theme='dark'] .hero__art
   background: var(--mat)

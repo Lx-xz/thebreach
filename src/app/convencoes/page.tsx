@@ -18,13 +18,13 @@ export default async function ConventionsPage() {
       <PageHead
         eyebrow="00-meta"
         title={doc.title}
-        lede="Regras de escrita válidas para todo o acervo. Alterações aqui exigem autorização do Criador."
+        lede={doc.excerpt}
       />
       <div className="panel" style={{ marginBottom: 'var(--space-7)' }}>
         <p className="panel__title">Os seis marcadores</p>
         <MarkerLegend />
       </div>
-      <DocArticle doc={doc} />
+      <DocArticle doc={doc} semIntro />
     </div>
   );
 }

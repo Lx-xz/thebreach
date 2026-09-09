@@ -259,7 +259,16 @@ export function DocSections({ sections }: { sections: DocSection[] }) {
   );
 }
 
-export function DocArticle({ doc, backlinks = [] }: { doc: BreachDoc; backlinks?: BreachDoc[] }) {
+export function DocArticle({
+  doc,
+  backlinks = [],
+  semIntro = false,
+}: {
+  doc: BreachDoc;
+  backlinks?: BreachDoc[];
+  /** A página já mostra a abertura do documento como lede do cabeçalho. */
+  semIntro?: boolean;
+}) {
   const tocItems: TocItem[] = doc.sections.flatMap((section) => [
     { id: section.id, label: section.number ? `${section.number}. ${section.title}` : section.title, level: 2 as const },
     ...section.children.map((child) => ({ id: child.id, label: child.title, level: 3 as const })),
@@ -290,7 +299,7 @@ export function DocArticle({ doc, backlinks = [] }: { doc: BreachDoc; backlinks?
 
       <div className="doclayout">
         <article className="doc">
-          {doc.introHtml ? (
+          {doc.introHtml && !semIntro ? (
           <div className="doc__intro prose" dangerouslySetInnerHTML={{ __html: doc.introHtml }} />
         ) : null}
 
