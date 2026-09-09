@@ -7,6 +7,48 @@ html
   -webkit-text-size-adjust: 100%
   scroll-behavior: smooth
   scroll-padding-top: 6rem
+  // Reserva a calha desde sempre: sem isto a página desloca na horizontal ao
+  // passar de um documento curto, sem rolagem, para um longo.
+  scrollbar-gutter: stable
+
+// --- Barras de rolagem ---------------------------------------------------
+// Dois caminhos, e a ordem entre eles não é a intuitiva: quando `scrollbar-width`
+// ou `scrollbar-color` está declarada, o navegador ignora as regras
+// `::-webkit-scrollbar` do mesmo elemento. Medido aqui: com as duas presentes a
+// barra sai com 10px (`thin`), não com os 16px pedidos ao WebKit.
+//
+// Então o caminho padronizado é o que vale em tudo que é atual — e ele só
+// aceita cor e espessura, não forma. O bloco `-webkit-` fica como reserva para
+// os Safari antigos, que não conhecem as propriedades padronizadas; lá ele pode
+// desenhar o filete arredondado, que é a única diferença entre os dois.
+//
+// Ambas se herdam de `html`, então a barra da página, a da lateral, a do sumário
+// e a das tabelas largas seguem a mesma tinta.
+// ------------------------------------------------------------------------
+
+html
+  scrollbar-width: thin
+  scrollbar-color: var(--scroll-thumb) transparent
+
+::-webkit-scrollbar
+  width: 11px
+  height: 11px
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner
+  background: transparent
+
+::-webkit-scrollbar-thumb
+  background-color: var(--scroll-thumb)
+  background-clip: padding-box
+  border-radius: var(--radius-pill)
+  // Borda transparente recortada no padding: afina o filete sem estreitar a
+  // área de arrasto.
+  border: 3px solid transparent
+  transition: background-color 0.2s var(--ease)
+
+  &:hover
+    background-color: var(--scroll-thumb-hover)
 
 @media (prefers-reduced-motion: reduce)
   html

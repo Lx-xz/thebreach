@@ -56,6 +56,18 @@ export function urlDaImagem(caminhoNoAcervo: string): string {
  * Procura a ilustração de abertura de um documento entre os arquivos do acervo.
  * Retorna a URL pública, ou `null` quando a entidade não tem `hero`.
  */
+/**
+ * O `hero` da pasta é a ilustração de abertura daquela entidade — o site já a
+ * desenha no topo da página. Citá-la no markdown é o que a faz aparecer também
+ * na leitura pelo GitHub, então a citação existe e precisa ser reconhecida.
+ */
+export function ehHeroDe(pasta: string, caminhoNoAcervo: string): boolean {
+  const prefixo = pasta ? `${pasta}/` : '';
+  if (!caminhoNoAcervo.startsWith(prefixo)) return false;
+  const arquivo = caminhoNoAcervo.slice(prefixo.length).toLowerCase();
+  return EXTENSOES.some((ext) => arquivo === `${NOME_HERO}.${ext}`);
+}
+
 export function ilustracaoDe(caminhoDoDocumento: string, arquivos: Set<string>): string | null {
   const pasta = pastaDe(caminhoDoDocumento);
   const prefixo = pasta ? `${pasta}/` : '';

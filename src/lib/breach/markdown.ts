@@ -21,7 +21,7 @@ import { VFile } from 'vfile';
 import type { Element, Root, RootContent } from 'hast';
 
 import { MARKERS, parseMarkerToken } from './markers';
-import { pastaDe, resolverRelativo, urlDaImagem } from './imagens';
+import { ehHeroDe, pastaDe, resolverRelativo, urlDaImagem } from './imagens';
 import { hrefForPath, looksLikeDocPath, withBase } from './slug';
 
 /** Pasta do documento em processamento, para resolver caminhos relativos. */
@@ -128,6 +128,34 @@ function rehypeDocLinks() {
   };
 }
 
+/**
+ * A ilustração de abertura sai do corpo do texto: a página já a mostra no topo,
+ * e o documento a cita para que ela apareça também no GitHub (CONVENCOES.md §8).
+ * Sem isto, a mesma aquarela apareceria duas vezes na mesma tela.
+ */
+function rehypeSemHeroRepetido() {
+  return (tree: Root, file: VFile): void => {
+    const pasta = pastaDoArquivo(file);
+    const ehHero = (no: RootContent): boolean => {
+      if (no.type !== 'element' || no.tagName !== 'img') return false;
+      const src = typeof no.properties?.src === 'string' ? no.properties.src : '';
+      if (!src || /^(https?:|data:)/i.test(src)) return false;
+      return ehHeroDe(pasta, src.startsWith('/') ? src.slice(1) : resolverRelativo(pasta, src));
+    };
+
+    visit(tree, 'element', (node: Element, indexInParent, parent) => {
+      if (node.tagName !== 'p' || !parent || indexInParent === undefined) return;
+      const conteudo = node.children.filter(
+        (filho) => filho.type !== 'text' || filho.value.trim() !== '',
+      );
+      if (conteudo.length !== 1 || !ehHero(conteudo[0])) return;
+      (parent as Element).children.splice(indexInParent, 1);
+      // O nó seguinte tomou este índice: a visita continua nele.
+      return indexInParent;
+    });
+  };
+}
+
 /** Tabelas do acervo são largas; cada uma rola dentro do próprio contêiner. */
 function rehypeTableWrapper() {
   return (tree: Root): void => {
@@ -175,6 +203,8 @@ const processor = unified()
     properties: { className: ['heading-anchor'] },
   })
   .use(rehypeMarkers)
+  // Antes do rehypeDocLinks: aqui o `src` ainda é o caminho relativo do acervo.
+  .use(rehypeSemHeroRepetido)
   .use(rehypeDocLinks)
   .use(rehypeFiguras)
   .use(rehypeTableWrapper)
