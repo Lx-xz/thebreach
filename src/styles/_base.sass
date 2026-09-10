@@ -66,6 +66,16 @@ html
     animation-iteration-count: 1 !important
     transition-duration: 0.01ms !important
 
+// Ritmo vertical do telefone. Os vãos grandes eram os do computador aplicados
+// iguais numa tela de 390px: entre a ficha e o sumário havia 80px, entre o
+// sumário e o texto 152px, e entre seções 72px. Medido: o documento passa de
+// 5,2 para 4,7 telas só com isto.
+@include until(48rem)
+  :root
+    --space-6: 1.5rem
+    --space-7: 2rem
+    --space-8: 2.75rem
+
 body
   margin: 0
   transition: background-color 0.4s var(--ease), color 0.4s var(--ease)

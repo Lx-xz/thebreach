@@ -151,6 +151,26 @@ a.chip:hover
     border-radius: 0
     padding: 0 0 var(--space-5)
 
+.toc__title--chave
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: var(--space-3)
+  width: 100%
+  // Linha inteira de alvo, com folga de dedo.
+  min-height: 2.75rem
+  margin-bottom: 0
+  padding: 0
+  color: var(--ink-4)
+  text-align: start
+
+  svg
+    flex: 0 0 auto
+    transition: transform 0.2s var(--ease)
+
+  &[aria-expanded='true'] svg
+    transform: rotate(180deg)
+
 .toc__list
   display: block
   border-left: 0
@@ -175,6 +195,27 @@ a.chip:hover
 
 .toc__link--sub
   padding-left: var(--space-4)
+
+// --- Sumário recolhido no telefone ---------------------------------------
+// Aberto, ele custava 343px de tela antes da primeira linha de texto — quase
+// metade da corrida até o conteúdo. Recolhido, o título vira a chave que o
+// abre. Quem manda no padrão é o CSS, e não o React: assim não há um quadro
+// de lista aberta antes da hidratação.
+// ------------------------------------------------------------------------
+
+@include until(48rem)
+  .toc
+    margin-bottom: var(--space-5)
+    padding-bottom: 0
+
+  .toc__list
+    display: none
+
+  .toc[data-aberto='true']
+    padding-bottom: var(--space-4)
+
+    .toc__list
+      display: block
 
 // Coluna à direita. Só entra quando sobra largura para o texto continuar
 // com a medida de leitura inteira.

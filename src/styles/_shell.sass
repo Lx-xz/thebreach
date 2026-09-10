@@ -504,6 +504,21 @@
   &:hover
     color: var(--fg)
 
+// No telefone a árvore é alvo de dedo, não de ponteiro. A chave media 21px de
+// lado — abaixo dos 24 que a norma pede como mínimo, e longe dos 44 que um
+// polegar quer. A seta continua do mesmo tamanho; o que cresce é a área que
+// responde ao toque, e a linha cresce junto para as áreas não se pisarem.
+@include until(48rem)
+  .railnav__chave
+    width: 2rem
+    height: 2rem
+
+  .railnav__sublink
+    padding-block: 0.5rem
+
+  .railnav__item
+    padding-block: var(--space-3)
+
 .scrim
   position: fixed
   inset: 0

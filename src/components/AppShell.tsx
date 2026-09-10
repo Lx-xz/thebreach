@@ -7,6 +7,7 @@ import {
   ChevronRight, Github, Moon, PanelLeft, PanelRight, Pin, PinOff, Search as SearchIcon, Sun, X,
 } from 'lucide-react';
 import type { SearchRecord } from '@/lib/breach/types';
+import { LARGO, useMedia } from '@/lib/media';
 import { useAppearance } from './AppearanceProvider';
 import { SearchDialog } from './SearchDialog';
 import { Sigil } from './Sigil';
@@ -153,19 +154,6 @@ const MAIN_LINKS = [
   { href: '/convencoes', label: 'Convenções' },
 ];
 
-/** Acompanha uma media query sem divergir na hidratação. */
-function useMedia(consulta: string): boolean {
-  const [bate, setBate] = useState(false);
-  useEffect(() => {
-    const query = window.matchMedia(consulta);
-    const sync = (): void => setBate(query.matches);
-    sync();
-    query.addEventListener('change', sync);
-    return () => query.removeEventListener('change', sync);
-  }, [consulta]);
-  return bate;
-}
-
 /**
  * Um gesto que começa dentro de algo que rola na horizontal — uma tabela larga,
  * um bloco de código — pertence àquilo, não à casca.
@@ -203,7 +191,7 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
   const [search, setSearch] = useState(false);
   const wide = useMedia('(min-width: 72rem)');
   // Abaixo disso a tela é de dedo, e as laterais respondem ao arrasto.
-  const estreito = !useMedia('(min-width: 48rem)');
+  const estreito = !useMedia(LARGO);
 
   // Começa vazio nos dois lados para a hidratação não divergir; o que estava
   // guardado entra depois, junto com os ancestrais da página atual.
