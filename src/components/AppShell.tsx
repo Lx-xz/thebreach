@@ -154,24 +154,45 @@ const MAIN_LINKS = [
 ];
 
 /** Acompanha uma media query sem divergir na hidratação. */
-function useWide(): boolean {
-  const [wide, setWide] = useState(false);
+function useMedia(consulta: string): boolean {
+  const [bate, setBate] = useState(false);
   useEffect(() => {
-    const query = window.matchMedia('(min-width: 72rem)');
-    const sync = (): void => setWide(query.matches);
+    const query = window.matchMedia(consulta);
+    const sync = (): void => setBate(query.matches);
     sync();
     query.addEventListener('change', sync);
     return () => query.removeEventListener('change', sync);
-  }, []);
-  return wide;
+  }, [consulta]);
+  return bate;
 }
+
+/**
+ * Um gesto que começa dentro de algo que rola na horizontal — uma tabela larga,
+ * um bloco de código — pertence àquilo, não à casca.
+ */
+function dentroDeRolagemHorizontal(alvo: EventTarget | null): boolean {
+  let no = alvo instanceof Element ? alvo : null;
+  while (no && no !== document.body) {
+    if (no.scrollWidth > no.clientWidth + 1) {
+      const overflow = getComputedStyle(no).overflowX;
+      if (overflow === 'auto' || overflow === 'scroll') return true;
+    }
+    no = no.parentElement;
+  }
+  return false;
+}
+
+/** O que separa um gesto de um toque à toa: distância, pressa e retidão. */
+const GESTO = { alcance: 64, tempo: 700, retidao: 1.8 } as const;
 
 export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
   const pathname = usePathname();
   const { theme, toggleTheme, nav: navMode, setNav, drawer, setDrawer, tools, toggleTools } =
     useAppearance();
   const [search, setSearch] = useState(false);
-  const wide = useWide();
+  const wide = useMedia('(min-width: 72rem)');
+  // Abaixo disso a tela é de dedo, e as laterais respondem ao arrasto.
+  const estreito = !useMedia('(min-width: 48rem)');
 
   // Começa vazio nos dois lados para a hidratação não divergir; o que estava
   // guardado entra depois, junto com os ancestrais da página atual.
@@ -230,6 +251,83 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
     setDrawer(false);
   }, [pathname, setDrawer]);
 
+  // Duas gavetas abertas ao mesmo tempo não fazem sentido: abrir uma fecha a
+  // outra.
+  const abrirNavegacao = useCallback(() => {
+    if (tools === 'open') toggleTools();
+    setDrawer(true);
+  }, [tools, toggleTools, setDrawer]);
+
+  const abrirFerramentas = useCallback(() => {
+    setDrawer(false);
+    if (tools !== 'open') toggleTools();
+  }, [tools, toggleTools, setDrawer]);
+
+  /**
+   * No telefone as laterais também respondem ao dedo: arrastar para a direita
+   * traz a navegação, para a esquerda traz as ferramentas, e o gesto contrário
+   * fecha a que estiver aberta.
+   *
+   * Nada de `preventDefault` aqui — a página tem de continuar rolando na
+   * vertical enquanto o dedo anda. O que separa um gesto de uma rolagem é a
+   * direção: só conta o que anda bem mais na horizontal do que na vertical.
+   */
+  useEffect(() => {
+    if (!estreito) return undefined;
+
+    let x0 = 0;
+    let y0 = 0;
+    let t0 = 0;
+    let valendo = false;
+
+    const comecar = (event: TouchEvent): void => {
+      if (event.touches.length !== 1) {
+        valendo = false;
+        return;
+      }
+      const toque = event.touches[0];
+      x0 = toque.clientX;
+      y0 = toque.clientY;
+      t0 = Date.now();
+      valendo = !dentroDeRolagemHorizontal(event.target);
+    };
+
+    const terminar = (event: TouchEvent): void => {
+      if (!valendo) return;
+      valendo = false;
+      const toque = event.changedTouches[0];
+      if (!toque) return;
+
+      const dx = toque.clientX - x0;
+      const dy = toque.clientY - y0;
+      if (Date.now() - t0 > GESTO.tempo) return;
+      if (Math.abs(dx) < GESTO.alcance) return;
+      if (Math.abs(dx) < Math.abs(dy) * GESTO.retidao) return;
+
+      const ferramentasAbertas = tools === 'open';
+      if (dx > 0) {
+        if (ferramentasAbertas) toggleTools();
+        else if (!drawer) abrirNavegacao();
+        return;
+      }
+      if (drawer) setDrawer(false);
+      else if (!ferramentasAbertas) abrirFerramentas();
+    };
+
+    const cancelar = (): void => {
+      valendo = false;
+    };
+
+    document.addEventListener('touchstart', comecar, { passive: true });
+    document.addEventListener('touchend', terminar, { passive: true });
+    document.addEventListener('touchcancel', cancelar, { passive: true });
+    return () => {
+      document.removeEventListener('touchstart', comecar);
+      document.removeEventListener('touchend', terminar);
+      document.removeEventListener('touchcancel', cancelar);
+    };
+  }, [estreito, drawer, tools, toggleTools, setDrawer, abrirNavegacao, abrirFerramentas]);
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
       const target = event.target as HTMLElement | null;
@@ -252,7 +350,8 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
       setDrawer(false);
       return;
     }
-    setDrawer(!drawer);
+    if (drawer) setDrawer(false);
+    else abrirNavegacao();
   };
 
   const togglePin = (): void => {
@@ -302,7 +401,7 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
             <button
               type="button"
               className="tool tool--tools"
-              onClick={toggleTools}
+              onClick={() => (tools === 'open' ? toggleTools() : abrirFerramentas())}
               aria-label={tools === 'open' ? 'Fechar as ferramentas' : 'Abrir as ferramentas'}
               aria-expanded={tools === 'open'}
             >

@@ -10,6 +10,13 @@ html
   // Reserva a calha desde sempre: sem isto a página desloca na horizontal ao
   // passar de um documento curto, sem rolagem, para um longo.
   scrollbar-gutter: stable
+  // Onde as gavetas respondem ao dedo, o arrasto horizontal é delas e não do
+  // histórico do navegador. Sem isto, arrastar para a direita no telefone volta
+  // uma página em vez de abrir a navegação — medido aqui: o gesto levava a
+  // `about:blank`. Só o eixo x, e só na faixa estreita: no computador o gesto
+  // não existe, e tirar o "voltar" de dois dedos do trackpad seria perda seca.
+  @include until(48rem)
+    overscroll-behavior-x: contain
 
 // --- Barras de rolagem ---------------------------------------------------
 // Dois caminhos, e a ordem entre eles não é a intuitiva: quando `scrollbar-width`
