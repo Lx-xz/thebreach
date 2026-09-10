@@ -132,6 +132,11 @@
 
 .tool--wide
   display: inline-flex
+  // O `.tool` centra pelos dois eixos com `place-items`, mas aqui o display
+  // vira flex, e em flex `justify-items` não vale de nada. Sem esta linha, a
+  // lupa encostava na borda esquerda assim que o botão perdia o rótulo e virava
+  // quadrado — medido: 1px de folga de um lado, 18px do outro.
+  justify-content: center
   align-items: center
   flex-wrap: nowrap
   white-space: nowrap
