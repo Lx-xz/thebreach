@@ -394,6 +394,15 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
           elegivel = false;
           return;
         }
+        // O dedo real nunca sai reto: se os primeiros pixels foram para cima ou
+        // para baixo, o navegador já prendeu o gesto na rolagem e não solta
+        // mais (o evento chega com `cancelable` falso). Disputar dali em diante
+        // é o que fazia a gaveta andar com a página subindo junto — então aqui
+        // se abre mão: ou é rolagem limpa, ou é arrasto limpo.
+        if (!event.cancelable) {
+          elegivel = false;
+          return;
+        }
         const escolha = escolher(dx);
         if (!escolha) {
           elegivel = false;
@@ -405,6 +414,11 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
         window.clearTimeout(assentar.current);
         setArrastando(lado);
       }
+
+      // Reivindicado o gesto, a página para de rolar: o dedo raramente anda
+      // reto, e sem isto a leitura sobe ou desce junto com a gaveta. É por
+      // causa desta linha que o `touchmove` não pode ser passivo.
+      if (event.cancelable) event.preventDefault();
 
       const sentido = lado === 'nav' ? 1 : -1;
       progresso = Math.min(1, Math.max(0, inicio + (dx * sentido) / largura));
@@ -432,7 +446,7 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
     };
 
     document.addEventListener('touchstart', comecar, { passive: true });
-    document.addEventListener('touchmove', mover, { passive: true });
+    document.addEventListener('touchmove', mover, { passive: false });
     document.addEventListener('touchend', terminar, { passive: true });
     document.addEventListener('touchcancel', cancelar, { passive: true });
     return () => {
