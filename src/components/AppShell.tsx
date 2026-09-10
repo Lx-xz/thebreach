@@ -182,8 +182,19 @@ function dentroDeRolagemHorizontal(alvo: EventTarget | null): boolean {
   return false;
 }
 
-/** O que separa um gesto de um toque à toa: distância, pressa e retidão. */
-const GESTO = { alcance: 64, tempo: 700, retidao: 1.8 } as const;
+/**
+ * Ajustes do arrasto.
+ *  `retidao`  — quanto o dedo tem de andar mais na horizontal do que na
+ *               vertical para o gesto ser das gavetas e não da rolagem.
+ *  `acordar`  — deslocamento a partir do qual se decide de quem é o gesto.
+ *  `virada`   — fração da gaveta a partir da qual soltar completa a abertura.
+ *  `piparote` — abaixo deste tempo o gesto vale pela direção, não pela
+ *               distância: um peteleco rápido abre mesmo sem ter ido longe.
+ *  `assentar` — o quanto a animação do CSS leva; passado isso o inline sai.
+ */
+const ARRASTO = { retidao: 1.8, acordar: 12, virada: 0.45, piparote: 320, assentar: 340 } as const;
+
+type Lado = 'nav' | 'ferramentas';
 
 export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
   const pathname = usePathname();
@@ -263,14 +274,26 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
     if (tools !== 'open') toggleTools();
   }, [tools, toggleTools, setDrawer]);
 
+  // Enquanto o dedo arrasta, a gaveta é movida direto no DOM: passar 60 quadros
+  // por segundo pelo React redesenharia a árvore inteira da navegação a cada
+  // pixel. O estado só entra no fim, para dizer onde ela parou.
+  const navRef = useRef<HTMLElement>(null);
+  const ferrRef = useRef<HTMLElement>(null);
+  const veuRef = useRef<HTMLButtonElement>(null);
+  const [arrastando, setArrastando] = useState<Lado | null>(null);
+  const assentar = useRef<number | undefined>(undefined);
+
+  useEffect(() => () => window.clearTimeout(assentar.current), []);
+
   /**
-   * No telefone as laterais também respondem ao dedo: arrastar para a direita
-   * traz a navegação, para a esquerda traz as ferramentas, e o gesto contrário
-   * fecha a que estiver aberta.
+   * No telefone as laterais acompanham o dedo: arrastar para a direita traz a
+   * navegação, para a esquerda traz as ferramentas, e a gaveta anda junto do
+   * movimento em vez de saltar quando ele acaba. Ao soltar, ela completa a
+   * abertura ou volta, conforme o quanto andou — ou conforme a direção, se o
+   * gesto foi um peteleco rápido.
    *
-   * Nada de `preventDefault` aqui — a página tem de continuar rolando na
-   * vertical enquanto o dedo anda. O que separa um gesto de uma rolagem é a
-   * direção: só conta o que anda bem mais na horizontal do que na vertical.
+   * Nada de `preventDefault` aqui: a página tem de continuar rolando na
+   * vertical enquanto o dedo anda. O que separa um gesto do outro é a direção.
    */
   useEffect(() => {
     if (!estreito) return undefined;
@@ -278,70 +301,147 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
     let x0 = 0;
     let y0 = 0;
     let t0 = 0;
-    let valendo = false;
+    let elegivel = false;
+    let lado: Lado | null = null;
+    let inicio = 0;
+    let largura = 1;
+    let progresso = 0;
+
+    const noDe = (qual: Lado): HTMLElement | null =>
+      qual === 'nav' ? navRef.current : ferrRef.current;
+
+    /** Fora da tela, em porcentagem da própria largura. */
+    const foraDe = (qual: Lado): number => (qual === 'nav' ? -102 : 102);
+
+    /** De quem é o gesto, e de que ponto ele parte. */
+    const escolher = (dx: number): { lado: Lado; inicio: number } | null => {
+      const ferramentasAbertas = tools === 'open';
+      if (dx > 0) {
+        if (ferramentasAbertas) return { lado: 'ferramentas', inicio: 1 };
+        if (!drawer) return { lado: 'nav', inicio: 0 };
+        return null;
+      }
+      if (drawer) return { lado: 'nav', inicio: 1 };
+      if (!ferramentasAbertas) return { lado: 'ferramentas', inicio: 0 };
+      return null;
+    };
+
+    const pintar = (qual: Lado, p: number): void => {
+      const no = noDe(qual);
+      if (no) {
+        no.style.transition = 'none';
+        no.style.transform = `translateX(${(1 - p) * foraDe(qual)}%)`;
+      }
+      if (veuRef.current) {
+        veuRef.current.style.transition = 'none';
+        veuRef.current.style.opacity = String(p);
+      }
+    };
+
+    /**
+     * Solta a gaveta no destino. O inline continua mandando durante a
+     * animação — devolver o controle ao CSS antes de o React escrever o novo
+     * atributo faria a gaveta saltar de volta ao ponto de partida.
+     */
+    const soltar = (qual: Lado, abrir: boolean): void => {
+      const no = noDe(qual);
+      if (no) {
+        no.style.transition = '';
+        no.style.transform = `translateX(${abrir ? 0 : foraDe(qual)}%)`;
+      }
+      if (veuRef.current) {
+        veuRef.current.style.transition = '';
+        veuRef.current.style.opacity = abrir ? '1' : '0';
+      }
+
+      if (qual === 'nav') setDrawer(abrir);
+      else if ((tools === 'open') !== abrir) toggleTools();
+
+      window.clearTimeout(assentar.current);
+      assentar.current = window.setTimeout(() => {
+        if (no) no.style.transform = '';
+        if (abrir && veuRef.current) veuRef.current.style.opacity = '';
+        setArrastando(null);
+      }, ARRASTO.assentar);
+    };
 
     const comecar = (event: TouchEvent): void => {
       if (event.touches.length !== 1) {
-        valendo = false;
+        elegivel = false;
         return;
       }
       const toque = event.touches[0];
       x0 = toque.clientX;
       y0 = toque.clientY;
       t0 = Date.now();
-      valendo = !dentroDeRolagemHorizontal(event.target);
+      lado = null;
+      progresso = 0;
+      elegivel = !dentroDeRolagemHorizontal(event.target);
+    };
+
+    const mover = (event: TouchEvent): void => {
+      if (!elegivel) return;
+      const toque = event.touches[0];
+      if (!toque) return;
+      const dx = toque.clientX - x0;
+      const dy = toque.clientY - y0;
+
+      if (!lado) {
+        if (Math.abs(dx) < ARRASTO.acordar) return;
+        // Decidido de uma vez: se o dedo saiu na vertical, o gesto é da
+        // rolagem e não volta a ser nosso no meio do caminho.
+        if (Math.abs(dx) < Math.abs(dy) * ARRASTO.retidao) {
+          elegivel = false;
+          return;
+        }
+        const escolha = escolher(dx);
+        if (!escolha) {
+          elegivel = false;
+          return;
+        }
+        lado = escolha.lado;
+        inicio = escolha.inicio;
+        largura = noDe(lado)?.getBoundingClientRect().width || 1;
+        window.clearTimeout(assentar.current);
+        setArrastando(lado);
+      }
+
+      const sentido = lado === 'nav' ? 1 : -1;
+      progresso = Math.min(1, Math.max(0, inicio + (dx * sentido) / largura));
+      pintar(lado, progresso);
     };
 
     const terminar = (event: TouchEvent): void => {
-      if (!valendo) return;
-      valendo = false;
+      const qual = lado;
+      elegivel = false;
+      lado = null;
+      if (!qual) return;
+
       const toque = event.changedTouches[0];
-      if (!toque) return;
-
-      const dx = toque.clientX - x0;
-      const dy = toque.clientY - y0;
-      if (Date.now() - t0 > GESTO.tempo) return;
-      if (Math.abs(dx) < GESTO.alcance) return;
-      if (Math.abs(dx) < Math.abs(dy) * GESTO.retidao) return;
-
-      const ferramentasAbertas = tools === 'open';
-      if (dx > 0) {
-        if (ferramentasAbertas) toggleTools();
-        else if (!drawer) abrirNavegacao();
-        return;
-      }
-      if (drawer) setDrawer(false);
-      else if (!ferramentasAbertas) abrirFerramentas();
+      const dx = toque ? toque.clientX - x0 : 0;
+      const avanco = dx * (qual === 'nav' ? 1 : -1);
+      const piparote = Date.now() - t0 < ARRASTO.piparote && Math.abs(avanco) > 24;
+      soltar(qual, piparote ? avanco > 0 : progresso > ARRASTO.virada);
     };
 
     const cancelar = (): void => {
-      valendo = false;
+      const qual = lado;
+      elegivel = false;
+      lado = null;
+      if (qual) soltar(qual, inicio === 1);
     };
 
     document.addEventListener('touchstart', comecar, { passive: true });
+    document.addEventListener('touchmove', mover, { passive: true });
     document.addEventListener('touchend', terminar, { passive: true });
     document.addEventListener('touchcancel', cancelar, { passive: true });
     return () => {
       document.removeEventListener('touchstart', comecar);
+      document.removeEventListener('touchmove', mover);
       document.removeEventListener('touchend', terminar);
       document.removeEventListener('touchcancel', cancelar);
     };
-  }, [estreito, drawer, tools, toggleTools, setDrawer, abrirNavegacao, abrirFerramentas]);
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent): void => {
-      const target = event.target as HTMLElement | null;
-      const typing =
-        target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
-      if (typing) return;
-      if (event.key === '/' || ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k')) {
-        event.preventDefault();
-        setSearch(true);
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
+  }, [estreito, drawer, tools, toggleTools, setDrawer]);
 
   // Fixada, o botão do cabeçalho recolhe; solta, abre e fecha a gaveta.
   const toggleNav = (): void => {
@@ -417,7 +517,7 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
 
           Como a da esquerda, abre e fecha: recolhida é uma faixa de ícones,
           aberta mostra os rótulos. */}
-      <aside className="utilrail" aria-label="Ferramentas do site">
+      <aside className="utilrail" ref={ferrRef} aria-label="Ferramentas do site">
         <div className="utilrail__bar">
           <p className="utilrail__label">Ferramentas</p>
           <button
@@ -456,7 +556,7 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
       </aside>
 
       <div className="frame">
-        <aside className="railnav" data-open={drawer} aria-label="Categorias do acervo">
+        <aside className="railnav" ref={navRef} data-open={drawer} aria-label="Categorias do acervo">
           <div className="railnav__bar">
             <span className="railnav__label">Navegação</span>
             <button
@@ -547,16 +647,20 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
           </div>
         </aside>
 
-        {drawer ? (
-          <button type="button" className="scrim" aria-label="Fechar a navegação" onClick={() => setDrawer(false)} />
-        ) : null}
-
-        {tools === 'open' ? (
+        {/* Um véu só, para os dois lados: durante o arrasto ele precisa existir
+            antes de a gaveta terminar de entrar, e dois véus empilhados
+            escureceriam o dobro. */}
+        {drawer || tools === 'open' || arrastando ? (
           <button
             type="button"
+            ref={veuRef}
             className="scrim"
-            aria-label="Fechar as ferramentas"
-            onClick={toggleTools}
+            data-visivel={drawer || tools === 'open'}
+            aria-label={drawer ? 'Fechar a navegação' : 'Fechar as ferramentas'}
+            onClick={() => {
+              setDrawer(false);
+              if (tools === 'open') toggleTools();
+            }}
           />
         ) : null}
 

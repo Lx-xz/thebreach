@@ -516,6 +516,16 @@
   border: 0
   background: rgba(20, 16, 12, 0.4)
   backdrop-filter: blur(2px)
+  // Nasce apagado: durante o arrasto o véu entra em cena antes da gaveta e
+  // escurece junto com ela, no compasso do dedo. Sem gaveta aberta ele não
+  // intercepta toque nenhum.
+  opacity: 0
+  pointer-events: none
+  transition: opacity 0.3s var(--ease)
+
+  &[data-visivel='true']
+    opacity: 1
+    pointer-events: auto
 
 // Fixada em tela larga: a navegação fica exatamente onde a gaveta abre —
 // mesma largura, encostada na borda esquerda da janela —, só que em vez de
