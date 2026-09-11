@@ -44,7 +44,12 @@ export const metadata: Metadata = {
   description:
     'Representação visual do acervo do universo Breach: cosmologia, geografia, povos, bestiário, forças, história, instituições, artefatos e narrativas.',
   applicationName: 'Compêndio Breach',
-  icons: { icon: [{ url: `${BASE_PATH}/favicon.svg`, type: 'image/svg+xml' }] },
+  icons: {
+    icon: [{ url: `${BASE_PATH}/favicon.svg`, type: 'image/svg+xml' }],
+    // O iPhone usa este ao guardar o site na tela inicial. Precisa ser PNG e
+    // opaco: ele não lê SVG neste `rel`, e transparência vira preto.
+    apple: [{ url: `${BASE_PATH}/apple-touch-icon.png`, sizes: '180x180', type: 'image/png' }],
+  },
 };
 
 /**
