@@ -15,8 +15,10 @@ import {
   looksLikeDocPath,
   normalizeDocPath,
   parseCategoryDir,
+  resolverRefRelativa,
   slugify,
 } from './slug';
+import { pastaDe } from './imagens';
 import { githubUrlFor } from './source';
 
 const EMPTY_VALUES = new Set(['—', '-', '–', '(nenhum)', '(vazio)', '(nenhuma)', 'n/a', '']);
@@ -44,13 +46,28 @@ export function labelFromPath(filePath: string): string {
   return parsed ? parsed.slug : humanize(dir);
 }
 
-function toDocRefs(value: string): DocRef[] {
+/**
+ * Os documentos relacionados de um cabeçalho (CONVENCOES.md §3).
+ *
+ * A forma corrente é o link markdown de caminho relativo — `[Grifo real](../grifo-real/)` —
+ * porque é ela que funciona nos dois leitores do acervo. A menção solta entre
+ * crases continua sendo lida: ela é a forma antiga do campo e segue válida no
+ * corpo do texto (CONVENCOES.md §6).
+ */
+function toDocRefs(value: string, pasta: string): DocRef[] {
   if (isEmptyValue(value)) return [];
-  // Uma entidade é citada pelo caminho da pasta; os arquivos que não são
-  // entidade, pelo nome. Os dois aparecem entre crases.
-  const inCode = [...value.matchAll(/`([^`]+)`/g)].map((m) => m[1].trim());
-  const candidates = (inCode.length ? inCode : value.split(',').map((part) => part.trim()))
-    .filter((item) => looksLikeDocPath(item));
+
+  const emLinks = [...value.matchAll(/\[[^\]]*\]\(([^)\s]+)\)/g)]
+    .map((m) => resolverRefRelativa(pasta, m[1]))
+    .filter((item): item is string => item !== null);
+
+  const emCrases = [...value.matchAll(/`([^`]+)`/g)].map((m) => m[1].trim());
+  const bruto = emLinks.length
+    ? emLinks
+    : emCrases.length
+      ? emCrases
+      : value.split(',').map((part) => part.trim());
+  const candidates = bruto.filter((item) => looksLikeDocPath(item));
 
   return candidates.map((raw) => {
     const path = normalizeDocPath(raw);
@@ -75,7 +92,7 @@ interface Preamble {
   introMarkdown: string;
 }
 
-function parsePreamble(lines: string[]): Preamble {
+function parsePreamble(lines: string[], pasta: string): Preamble {
   const header: DocHeader = {
     classificacao: null,
     subtipo: null,
@@ -111,10 +128,10 @@ function parsePreamble(lines: string[]): Preamble {
         header.fontesInternas = splitList(value);
         break;
       case 'documentos relacionados':
-        header.documentosRelacionados = toDocRefs(value);
+        header.documentosRelacionados = toDocRefs(value, pasta);
         break;
       case 'documentos derivados':
-        header.documentosDerivados = toDocRefs(value);
+        header.documentosDerivados = toDocRefs(value, pasta);
         break;
       case 'ultima atualizacao':
         header.ultimaAtualizacao = isEmptyValue(value) ? null : value;
@@ -239,7 +256,7 @@ export async function parseDocument(filePath: string, markdown: string): Promise
   const preambleLines = firstSection === -1 ? afterTitle : afterTitle.slice(0, firstSection);
   const sectionLines = firstSection === -1 ? [] : afterTitle.slice(firstSection);
 
-  const { header, introMarkdown } = parsePreamble(preambleLines);
+  const { header, introMarkdown } = parsePreamble(preambleLines, pastaDe(filePath));
   const rawSections = splitSections(sectionLines);
   const sections = nest(await Promise.all(rawSections.map((raw) => buildSection(raw, filePath))));
 

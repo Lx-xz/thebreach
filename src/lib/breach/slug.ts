@@ -78,3 +78,39 @@ export function looksLikeDocPath(value: string): boolean {
   // Documento solto: pasta numerada e um arquivo .md em qualquer profundidade.
   return /^\d{2}-[a-z-]+(?:\/[\w.-]+)*\/[\w.-]+\.md$/i.test(raw);
 }
+
+/** Junta uma pasta do acervo com um caminho relativo, resolvendo `.` e `..`. */
+export function resolverRelativo(pasta: string, relativo: string): string {
+  const partes = pasta ? pasta.split('/') : [];
+  for (const parte of relativo.split('/')) {
+    if (!parte || parte === '.') continue;
+    if (parte === '..') partes.pop();
+    else partes.push(parte);
+  }
+  return partes.join('/');
+}
+
+/**
+ * Referência a documento escrita relativa a quem a cita → caminho no acervo.
+ *
+ * O acervo escreve estas referências por caminho relativo pelo mesmo motivo que
+ * escreve as imagens assim (CONVENCOES.md §3 e §8): é o caminho relativo que
+ * funciona nos dois leitores, o GitHub e este site.
+ *
+ * `null` quando o alvo não é documento do acervo — endereço externo, âncora,
+ * imagem, qualquer coisa que não deva virar rota.
+ */
+export function resolverRefRelativa(pasta: string, alvo: string): string | null {
+  const limpo = alvo.trim();
+  if (!limpo || limpo.startsWith('#') || /^[a-z][a-z0-9+.-]*:/i.test(limpo)) return null;
+
+  const semAncora = limpo.split('#')[0];
+  const junto = semAncora.startsWith('/')
+    ? semAncora.slice(1)
+    : resolverRelativo(pasta, semAncora);
+
+  // A barra final é o que distingue a entidade do arquivo (CONVENCOES.md §6) e
+  // ela se perde na junção; o reconhecedor depende dela para aceitar a pasta.
+  const caminho = /\.md$/i.test(junto) ? junto : `${junto}/`;
+  return looksLikeDocPath(caminho) ? caminho : null;
+}

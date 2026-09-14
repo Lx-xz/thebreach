@@ -36,17 +36,6 @@ export function pastaDe(caminho: string): string {
   return corte === -1 ? '' : caminho.slice(0, corte);
 }
 
-/** Junta uma pasta do acervo com um caminho relativo, resolvendo `.` e `..`. */
-export function resolverRelativo(pasta: string, relativo: string): string {
-  const partes = pasta ? pasta.split('/') : [];
-  for (const parte of relativo.split('/')) {
-    if (!parte || parte === '.') continue;
-    if (parte === '..') partes.pop();
-    else partes.push(parte);
-  }
-  return partes.join('/');
-}
-
 /** Caminho no acervo → URL servida pelo site. */
 export function urlDaImagem(caminhoNoAcervo: string): string {
   return withBase(`/acervo/${caminhoNoAcervo}`).replace(/\/$/, '');

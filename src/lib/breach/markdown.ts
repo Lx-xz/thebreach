@@ -21,8 +21,14 @@ import { VFile } from 'vfile';
 import type { Element, Root, RootContent } from 'hast';
 
 import { MARKERS, parseMarkerToken } from './markers';
-import { ehHeroDe, pastaDe, resolverRelativo, urlDaImagem } from './imagens';
-import { hrefForPath, looksLikeDocPath, withBase } from './slug';
+import { ehHeroDe, pastaDe, urlDaImagem } from './imagens';
+import {
+  hrefForPath,
+  looksLikeDocPath,
+  resolverRefRelativa,
+  resolverRelativo,
+  withBase,
+} from './slug';
 
 /** Pasta do documento em processamento, para resolver caminhos relativos. */
 function pastaDoArquivo(file: VFile): string {
@@ -101,10 +107,13 @@ function rehypeDocLinks() {
           node.properties.className = ['link-external'];
           return;
         }
-        if (href.startsWith('#')) return;
-        const [filePath, hash = ''] = href.split('#');
-        const route = hrefForPath(filePath);
+        // O acervo cita outro documento por caminho relativo, como cita as
+        // imagens: é o que faz o link funcionar também na leitura pelo GitHub.
+        const caminho = resolverRefRelativa(pasta, href);
+        if (!caminho) return;
+        const route = hrefForPath(caminho);
         if (route) {
+          const hash = href.includes('#') ? href.slice(href.indexOf('#') + 1) : '';
           node.properties.href = withBase(route) + (hash ? `#${hash}` : '');
           node.properties.className = ['link-internal'];
         }
