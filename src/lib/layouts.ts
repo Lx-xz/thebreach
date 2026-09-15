@@ -15,6 +15,8 @@ export const STORAGE_KEYS = {
   theme: 'breach:theme',
   nav: 'breach:nav',
   tools: 'breach:tools',
+  admin: 'breach:admin',
+  token: 'breach:gh-token',
 } as const;
 
 export function isNavMode(value: unknown): value is NavMode {

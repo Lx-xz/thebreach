@@ -63,6 +63,8 @@ var n=localStorage.getItem(${JSON.stringify(STORAGE_KEYS.nav)});
 if(n==='pinned'||n==='floating'){d.setAttribute('data-nav',n);}
 var f=localStorage.getItem(${JSON.stringify(STORAGE_KEYS.tools)});
 if(f==='open'||f==='closed'){d.setAttribute('data-tools',f);}
+var a=localStorage.getItem(${JSON.stringify(STORAGE_KEYS.admin)});
+if(a==='1'){d.setAttribute('data-admin','1');}
 }catch(e){}})();`;
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

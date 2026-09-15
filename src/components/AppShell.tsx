@@ -4,13 +4,15 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  ChevronRight, Github, Moon, PanelLeft, PanelRight, Pin, PinOff, Search as SearchIcon, Sun, X,
+  ChevronRight, Github, Moon, PanelLeft, PanelRight, Pin, PinOff, Search as SearchIcon, Shield,
+  ShieldCheck, Sun, X,
 } from 'lucide-react';
 import type { SearchRecord } from '@/lib/breach/types';
 import { LARGO, useMedia } from '@/lib/media';
 import { useAppearance } from './AppearanceProvider';
 import { SearchDialog } from './SearchDialog';
 import { Sigil } from './Sigil';
+import { TokenDialog } from './TokenDialog';
 
 /** Uma entidade na navegação, com as entidades contidas nela. */
 export interface NavDoc {
@@ -186,9 +188,11 @@ type Lado = 'nav' | 'ferramentas';
 
 export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
   const pathname = usePathname();
-  const { theme, toggleTheme, nav: navMode, setNav, drawer, setDrawer, tools, toggleTools } =
-    useAppearance();
+  const {
+    theme, toggleTheme, nav: navMode, setNav, drawer, setDrawer, tools, toggleTools, admin,
+  } = useAppearance();
   const [search, setSearch] = useState(false);
+  const [tokenDialog, setTokenDialog] = useState(false);
   const wide = useMedia('(min-width: 72rem)');
   // Abaixo disso a tela é de dedo, e as laterais respondem ao arrasto.
   const estreito = !useMedia(LARGO);
@@ -445,6 +449,29 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
     };
   }, [estreito, drawer, tools, toggleTools, setDrawer]);
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      const target = event.target as HTMLElement | null;
+      const digitando =
+        target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
+      if (digitando) return;
+
+      // `event.code` em vez de `event.key`: em alguns layouts Ctrl+Alt+A vira
+      // caractere morto e `key` não chega a valer 'a'.
+      if (event.ctrlKey && event.altKey && event.code === 'KeyA') {
+        event.preventDefault();
+        setTokenDialog(true);
+        return;
+      }
+      if (event.key === '/' || ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k')) {
+        event.preventDefault();
+        setSearch(true);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
   // Fixada, o botão do cabeçalho recolhe; solta, abre e fecha a gaveta.
   const toggleNav = (): void => {
     if (railFixed) {
@@ -543,6 +570,17 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
         >
           {theme === 'dark' ? <Sun size={18} aria-hidden="true" /> : <Moon size={18} aria-hidden="true" />}
           <span className="utilrail__nome">{theme === 'dark' ? 'Tema claro' : 'Tema escuro'}</span>
+        </button>
+        <button
+          type="button"
+          className="utilrail__tool"
+          data-ativo={admin}
+          onClick={() => setTokenDialog(true)}
+          aria-label="Modo administrador"
+          title="Modo administrador (Ctrl+Alt+A)"
+        >
+          {admin ? <ShieldCheck size={18} aria-hidden="true" /> : <Shield size={18} aria-hidden="true" />}
+          <span className="utilrail__nome">{admin ? 'Administrador' : 'Modo administrador'}</span>
         </button>
         <a
           className="utilrail__tool"
@@ -707,6 +745,7 @@ export function AppShell({ nav, searchRecords, repoUrl, children }: Props) {
       </footer>
 
       <SearchDialog records={searchRecords} open={search} onClose={() => setSearch(false)} />
+      <TokenDialog open={tokenDialog} onClose={() => setTokenDialog(false)} />
     </div>
   );
 }

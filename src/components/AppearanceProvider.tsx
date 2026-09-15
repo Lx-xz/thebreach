@@ -25,6 +25,14 @@ interface Appearance {
   /** `open`: a lateral direita mostra os rótulos ao lado dos ícones. */
   tools: ToolsMode;
   toggleTools: () => void;
+  /** Modo administrador: mostra os links de edição pelo site. */
+  admin: boolean;
+  /** Token pessoal do GitHub, guardado no navegador. `null` quando não há um. */
+  token: string | null;
+  /** Grava o token e liga o modo administrador. */
+  activate: (token: string) => void;
+  /** Apaga o token e desliga o modo administrador. */
+  deactivate: () => void;
 }
 
 const AppearanceContext = createContext<Appearance | null>(null);
@@ -37,11 +45,21 @@ function remember(key: string, value: string): void {
   }
 }
 
+function forget(key: string): void {
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    /* navegação privada: nada para apagar */
+  }
+}
+
 export function AppearanceProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<ThemeId>(DEFAULT_THEME);
   const [nav, setNavState] = useState<NavMode>(DEFAULT_NAV);
   const [tools, setToolsState] = useState<ToolsMode>(DEFAULT_TOOLS);
   const [drawer, setDrawer] = useState(false);
+  const [admin, setAdmin] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
 
   // Alinha o estado do React com o que o script inline já aplicou no <html>.
   useEffect(() => {
@@ -49,6 +67,14 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
     if (root.dataset.theme === 'dark') setTheme('dark');
     if (isNavMode(root.dataset.nav)) setNavState(root.dataset.nav);
     if (isToolsMode(root.dataset.tools)) setToolsState(root.dataset.tools);
+    if (root.dataset.admin === '1') setAdmin(true);
+    // O token nunca passa pelo script bloqueante: só é lido aqui, depois da
+    // primeira pintura.
+    try {
+      setToken(window.localStorage.getItem(STORAGE_KEYS.token));
+    } catch {
+      /* navegação privada: sem token guardado */
+    }
   }, []);
 
   const toggleTheme = useCallback(() => {
@@ -75,9 +101,38 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
     });
   }, []);
 
+  const activate = useCallback((next: string) => {
+    setToken(next);
+    remember(STORAGE_KEYS.token, next);
+    setAdmin(true);
+    document.documentElement.dataset.admin = '1';
+    remember(STORAGE_KEYS.admin, '1');
+  }, []);
+
+  const deactivate = useCallback(() => {
+    setToken(null);
+    forget(STORAGE_KEYS.token);
+    setAdmin(false);
+    delete document.documentElement.dataset.admin;
+    forget(STORAGE_KEYS.admin);
+  }, []);
+
   const value = useMemo(
-    () => ({ theme, toggleTheme, nav, setNav, drawer, setDrawer, tools, toggleTools }),
-    [theme, toggleTheme, nav, setNav, drawer, tools, toggleTools],
+    () => ({
+      theme,
+      toggleTheme,
+      nav,
+      setNav,
+      drawer,
+      setDrawer,
+      tools,
+      toggleTools,
+      admin,
+      token,
+      activate,
+      deactivate,
+    }),
+    [theme, toggleTheme, nav, setNav, drawer, tools, toggleTools, admin, token, activate, deactivate],
   );
 
   return <AppearanceContext.Provider value={value}>{children}</AppearanceContext.Provider>;
