@@ -22,6 +22,13 @@ export interface Achado {
   escrita: string;
   /** O arquivo que precisaria existir. */
   alvo: string;
+  /**
+   * Em que forma a referência foi escrita. O §3 e o §6 dão formas diferentes
+   * ao mesmo alvo — link de caminho relativo no cabeçalho, menção absoluta
+   * entre crases no corpo — e quem for reescrever uma referência precisa saber
+   * qual delas está trocando.
+   */
+  forma: 'link' | 'crase';
 }
 
 // Bloco cercado é exemplo e modelo: o que está dentro dele não é referência.
@@ -43,7 +50,7 @@ const NARRATIVAS = '09-narrativas/';
  * como foi escrita, nomeando o acervo do dia em que foi registrada. Reescrever
  * o passado para o conferidor ficar quieto seria reescrever o histórico.
  */
-const FORA_DA_TEIA = new Set(['00-meta/REGISTRO-DE-ALTERACOES.md']);
+export const FORA_DA_TEIA = new Set(['00-meta/REGISTRO-DE-ALTERACOES.md']);
 
 /** O mesmo texto, com os blocos cercados trocados por linhas vazias. */
 function semCodigo(texto: string): string {
@@ -79,8 +86,14 @@ function alvoDeEntidade(caminho: string): string {
   return `${caminho.replace(/\/$/, '')}/README.md`;
 }
 
-/** As referências escritas num documento, já resolvidas em caminhos do acervo. */
-function referencias(path: string, texto: string): Achado[] {
+/**
+ * As referências escritas num documento, já resolvidas em caminhos do acervo.
+ *
+ * Exportada porque é também o que a mudança de caminho usa para descobrir quem
+ * cita o que vai sair do lugar. O mesmo reconhecedor conferindo e movendo é o
+ * que impede um de enxergar o que o outro não enxerga.
+ */
+export function referencias(path: string, texto: string): Achado[] {
   const pasta = pastaDe(path);
   let fonte = texto;
 
@@ -98,7 +111,11 @@ function referencias(path: string, texto: string): Achado[] {
     if (!limpo) continue;
     const junto = limpo.startsWith('/') ? limpo.slice(1) : resolverRelativo(pasta, limpo);
     // A junção come a barra final, e é ela que diz "isto é uma entidade".
-    achadas.push({ escrita: destino, alvo: alvoDeEntidade(limpo.endsWith('/') ? `${junto}/` : junto) });
+    achadas.push({
+      escrita: destino,
+      alvo: alvoDeEntidade(limpo.endsWith('/') ? `${junto}/` : junto),
+      forma: 'link',
+    });
   }
 
   for (const [, trecho] of corpo.matchAll(CRASE)) {
@@ -111,7 +128,9 @@ function referencias(path: string, texto: string): Achado[] {
     // vira link é o que a conferência precisa cobrar. Como os dois arquivos
     // existem, isso nunca produz um achado — a não ser que deixem de existir,
     // que é justamente o caso em que se quer saber.
-    if (looksLikeDocPath(bruto)) achadas.push({ escrita: bruto, alvo: alvoDeEntidade(bruto) });
+    if (looksLikeDocPath(bruto)) {
+      achadas.push({ escrita: bruto, alvo: alvoDeEntidade(bruto), forma: 'crase' });
+    }
   }
 
   return achadas;

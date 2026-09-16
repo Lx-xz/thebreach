@@ -91,6 +91,53 @@ export function resolverRelativo(pasta: string, relativo: string): string {
 }
 
 /**
+ * O inverso de `resolverRelativo`: dois caminhos do acervo → como o primeiro
+ * escreve o segundo.
+ *
+ * `relativizar('04-bestiario/aves/grifos/grifo-real', '04-bestiario/aves/grifos/grifo-umbral')`
+ * dá `../grifo-umbral`. É o que permite reescrever uma citação quando o alvo
+ * muda de lugar, mantendo a forma relativa que o §3 exige.
+ */
+export function relativizar(daPasta: string, paraCaminho: string): string {
+  const de = daPasta ? daPasta.split('/') : [];
+  const para = paraCaminho ? paraCaminho.split('/') : [];
+
+  let comum = 0;
+  while (comum < de.length && comum < para.length && de[comum] === para[comum]) comum += 1;
+
+  const subir = Array.from({ length: de.length - comum }, () => '..');
+  const descer = para.slice(comum);
+  const partes = [...subir, ...descer];
+  // Mesma pasta e mesmo nome: o alvo é o próprio lugar de quem cita.
+  return partes.length ? partes.join('/') : '.';
+}
+
+/** `humanize` de um nome de pasta ou arquivo: `grifo-umbral` → `Grifo umbral`. */
+function humanize(stem: string): string {
+  const spaced = stem.replace(/^\d{4}-\d{2}-\d{2}-/, '').replace(/-/g, ' ');
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+/**
+ * Título legível a partir do caminho, usado enquanto o real não é conhecido.
+ *
+ * Mora aqui, e não em `parse.ts`, porque o editor precisa dela no navegador e
+ * `parse.ts` importa `source.ts`, que lê do disco.
+ */
+export function labelFromPath(filePath: string): string {
+  const segments = normalizeDocPath(filePath).split('/');
+  const stem = (segments[segments.length - 1] ?? '').replace(/\.md$/i, '');
+  if (stem.toUpperCase() !== 'README') return humanize(stem);
+
+  // O documento de uma entidade chama-se README: o nome está na pasta
+  // (CONVENCOES.md §6).
+  const dir = segments[segments.length - 2] ?? '';
+  if (!dir) return 'Compêndio';
+  const parsed = parseCategoryDir(dir);
+  return parsed ? parsed.slug : humanize(dir);
+}
+
+/**
  * Referência a documento escrita relativa a quem a cita → caminho no acervo.
  *
  * O acervo escreve estas referências por caminho relativo pelo mesmo motivo que

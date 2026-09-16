@@ -67,10 +67,14 @@ function decodeBase64Utf8(base64: string): string {
  * texto vira bytes UTF-8 antes, e só a cadeia de bytes vai para o `btoa`.
  */
 function encodeBase64Utf8(texto: string): string {
-  const bytes = new TextEncoder().encode(texto);
+  return bytesParaBase64(new TextEncoder().encode(texto));
+}
+
+/** Bytes crus → base64. Serve ao texto e às imagens. */
+export function bytesParaBase64(bytes: Uint8Array): string {
   let bin = '';
-  // Em pedaços: `String.fromCharCode(...bytes)` de um documento inteiro pode
-  // passar do limite de argumentos da chamada.
+  // Em pedaços: `String.fromCharCode(...bytes)` de um arquivo inteiro passa do
+  // limite de argumentos da chamada — e uma ilustração tem megabytes.
   for (let i = 0; i < bytes.length; i += 8192) {
     bin += String.fromCharCode(...bytes.subarray(i, i + 8192));
   }
@@ -109,23 +113,37 @@ async function erroDeEscrita(response: Response, path: string): Promise<GithubAp
 }
 
 /**
- * Todos os arquivos do acervo, numa chamada só.
+ * Todos os arquivos do acervo, numa chamada só: caminho → sha do blob.
+ *
+ * O sha não é enfeite: é ele que deixa mover um arquivo sem reenviar o
+ * conteúdo, porque na árvore nova basta apontar o mesmo blob noutro caminho.
  *
  * `null` quando o GitHub corta a resposta (`truncated`): melhor a conferência
  * se declarar indisponível do que acusar de quebrada uma referência que existe.
  */
-export async function listarArvore(token: string): Promise<Set<string> | null> {
+export async function listarArvore(token: string): Promise<Map<string, string> | null> {
   const url = `https://api.github.com/repos/${OWNER}/${REPO}/git/trees/${BRANCH}?recursive=1`;
   const response = await fetch(url, { headers: headers(token) });
   if (!response.ok) {
     throw new GithubApiError(response.status, `Falha ao listar o acervo (${response.status}).`);
   }
   const payload = (await response.json()) as {
-    tree: Array<{ path: string; type: string }>;
+    tree: Array<{ path: string; type: string; sha: string }>;
     truncated?: boolean;
   };
   if (payload.truncated) return null;
-  return new Set(payload.tree.filter((no) => no.type === 'blob').map((no) => no.path));
+  return new Map(payload.tree.filter((no) => no.type === 'blob').map((no) => [no.path, no.sha]));
+}
+
+/** O texto de um blob pelo sha. É como se lê o acervo inteiro sem 47 caminhos. */
+export async function lerBlob(sha: string, token: string): Promise<string> {
+  const url = `https://api.github.com/repos/${OWNER}/${REPO}/git/blobs/${sha}`;
+  const response = await fetch(url, { headers: headers(token) });
+  if (!response.ok) {
+    throw new GithubApiError(response.status, `Falha ao ler o blob ${sha} (${response.status}).`);
+  }
+  const payload = (await response.json()) as { content: string; encoding: string };
+  return payload.encoding === 'base64' ? decodeBase64Utf8(payload.content) : payload.content;
 }
 
 /** Lê um arquivo do acervo. `null` quando o arquivo não existe. */
@@ -171,4 +189,104 @@ export async function gravarArquivo(
     commit: { html_url: string };
   };
   return { sha: payload.content.sha, commitUrl: payload.commit.html_url };
+}
+
+/* --- Commit de várias mãos ------------------------------------------------ */
+
+/** Uma alteração de arquivo dentro de um commit só. */
+export type Mudanca =
+  | { tipo: 'texto'; path: string; conteudo: string }
+  | { tipo: 'binario'; path: string; base64: string }
+  /** Reaproveita um blob que já existe: é assim que se move sem reenviar. */
+  | { tipo: 'blob'; path: string; sha: string }
+  | { tipo: 'remover'; path: string };
+
+/** Modo de arquivo comum, o único que o acervo usa. */
+const ARQUIVO = '100644';
+
+async function apiGit<T>(
+  caminho: string,
+  token: string,
+  init?: RequestInit & { corpo?: unknown },
+): Promise<T> {
+  const { corpo, ...resto } = init ?? {};
+  const response = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/git/${caminho}`, {
+    ...resto,
+    headers: {
+      ...headers(token),
+      ...(corpo === undefined ? {} : { 'Content-Type': 'application/json' }),
+    },
+    body: corpo === undefined ? undefined : JSON.stringify(corpo),
+  });
+  if (!response.ok) throw await erroDeEscrita(response, caminho);
+  return (await response.json()) as T;
+}
+
+/**
+ * Grava várias alterações como **um** commit — ou nenhuma.
+ *
+ * A API de `contents` grava um arquivo por commit: renomear uma entidade com
+ * três imagens seriam oito commits, e em nenhum instante entre eles o acervo
+ * estaria inteiro. A API de dados do Git monta a árvore toda antes e só então
+ * move a referência do ramo.
+ *
+ * O `PATCH` final vai **sem `force`**: se alguém gravou nesse meio-tempo, o
+ * avanço deixa de ser direto e o GitHub recusa. É o mesmo controle de
+ * concorrência que o `sha` faz na gravação de um arquivo — e a recusa chega
+ * como conflito, para a página tratar como já trata.
+ */
+export async function commitarArvore(
+  mudancas: Mudanca[],
+  mensagem: string,
+  token: string,
+): Promise<Gravacao> {
+  if (!mudancas.length) throw new GithubApiError(400, 'Nada a gravar.');
+
+  const ref = await apiGit<{ object: { sha: string } }>(`ref/heads/${BRANCH}`, token);
+  const base = ref.object.sha;
+  const commitBase = await apiGit<{ tree: { sha: string } }>(`commits/${base}`, token);
+
+  // A árvore só aceita conteúdo em UTF-8, então cada binário vira blob antes e
+  // a entrada aponta para o sha devolvido.
+  const shasDeBinario = new Map<string, string>();
+  for (const mudanca of mudancas) {
+    if (mudanca.tipo !== 'binario') continue;
+    const blob = await apiGit<{ sha: string }>('blobs', token, {
+      method: 'POST',
+      corpo: { content: mudanca.base64, encoding: 'base64' },
+    });
+    shasDeBinario.set(mudanca.path, blob.sha);
+  }
+
+  const entradas = mudancas.map((mudanca) => {
+    const comum = { path: mudanca.path, mode: ARQUIVO, type: 'blob' as const };
+    switch (mudanca.tipo) {
+      case 'texto':
+        return { ...comum, content: mudanca.conteudo };
+      case 'binario':
+        return { ...comum, sha: shasDeBinario.get(mudanca.path) ?? null };
+      case 'blob':
+        return { ...comum, sha: mudanca.sha };
+      case 'remover':
+        // `sha: null` sobre uma `base_tree` é como se apaga um caminho.
+        return { ...comum, sha: null };
+    }
+  });
+
+  const arvore = await apiGit<{ sha: string }>('trees', token, {
+    method: 'POST',
+    corpo: { base_tree: commitBase.tree.sha, tree: entradas },
+  });
+
+  const commit = await apiGit<{ sha: string; html_url: string }>('commits', token, {
+    method: 'POST',
+    corpo: { message: mensagem, tree: arvore.sha, parents: [base] },
+  });
+
+  await apiGit<unknown>(`refs/heads/${BRANCH}`, token, {
+    method: 'PATCH',
+    corpo: { sha: commit.sha },
+  });
+
+  return { sha: commit.sha, commitUrl: commit.html_url };
 }

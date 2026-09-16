@@ -159,3 +159,70 @@ export function hoje(): string {
   const dia = String(agora.getDate()).padStart(2, '0');
   return `${agora.getFullYear()}-${mes}-${dia}`;
 }
+
+/* --- Título e ilustração de abertura -------------------------------------- */
+
+/** A linha da citação do hero, em qualquer extensão aceita (§8). */
+const CITACAO_HERO = /^!\[([^\]]*)\]\((hero\.[a-z0-9]+)\)\s*$/i;
+
+/** O título do documento: a linha `# ...` de abertura. */
+export function lerTitulo(bruto: string): string | null {
+  for (const linha of bruto.split('\n')) {
+    const titulo = /^#\s+(.*)$/.exec(linha.trim());
+    if (titulo) return titulo[1].trim();
+    if (linha.trim()) break;
+  }
+  return null;
+}
+
+/**
+ * Troca o título e, junto com ele, a legenda da ilustração de abertura.
+ *
+ * As duas andam juntas no acervo — `# Grifo Real` com `![Grifo Real](hero.png)`
+ * — e o §8 diz que o texto alternativo é legenda, não descrição técnica. Trocar
+ * só o título deixaria a legenda contando o nome antigo.
+ */
+export function definirTitulo(bruto: string, titulo: string): string {
+  const antigo = lerTitulo(bruto);
+  const linhas = bruto.split('\n');
+  let trocouTitulo = false;
+
+  for (let i = 0; i < linhas.length; i += 1) {
+    if (!trocouTitulo && /^#\s+/.test(linhas[i].trim())) {
+      linhas[i] = `# ${titulo}`;
+      trocouTitulo = true;
+      continue;
+    }
+    const hero = CITACAO_HERO.exec(linhas[i].trim());
+    // Só a legenda que repetia o título antigo: uma legenda escrita à mão fica.
+    if (hero && (!antigo || hero[1].trim() === antigo)) {
+      linhas[i] = `![${titulo}](${hero[2]})`;
+      break;
+    }
+    if (trocouTitulo && linhas[i].trim() && !hero) break;
+  }
+
+  return linhas.join('\n');
+}
+
+/**
+ * Garante que a ilustração de abertura esteja citada logo abaixo do título.
+ *
+ * O site já desenha o hero no topo por conta própria, e `rehypeSemHeroRepetido`
+ * tira esta linha do corpo. Ela existe pelo outro leitor: é a citação que faz a
+ * ilustração aparecer na leitura pelo GitHub (§8).
+ */
+export function garantirHero(bruto: string, arquivo: string, alt: string): string {
+  const linhas = bruto.split('\n');
+  const legenda = alt.trim() || lerTitulo(bruto) || 'Ilustração';
+
+  const existente = linhas.findIndex((linha) => CITACAO_HERO.test(linha.trim()));
+  if (existente !== -1) {
+    linhas[existente] = `![${legenda}](${arquivo})`;
+    return linhas.join('\n');
+  }
+
+  const titulo = linhas.findIndex((linha) => /^#\s+/.test(linha.trim()));
+  linhas.splice(titulo + 1, 0, `![${legenda}](${arquivo})`);
+  return linhas.join('\n');
+}

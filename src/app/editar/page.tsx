@@ -1,20 +1,26 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { PageHead } from '@/components/content';
 import { Cabecalho } from '@/components/Cabecalho';
 import { DiffView } from '@/components/DiffView';
+import { DocumentoNovo } from '@/components/DocumentoNovo';
+import { Ilustracoes, mudancasDeImagem, type ImagemPronta } from '@/components/Ilustracoes';
+import { MudarCaminho } from '@/components/MudarCaminho';
 import { Previa } from '@/components/Previa';
 import { useAppearance } from '@/components/AppearanceProvider';
 import { definirCampo, hoje } from '@/lib/breach/cabecalho';
 import { conferirTexto } from '@/lib/breach/conferir';
 import {
   GithubApiError,
+  commitarArvore,
   gravarArquivo,
   lerArquivo,
+  lerBlob,
   listarArvore,
   type Gravacao,
+  type Mudanca,
 } from '@/lib/breach/github';
 import {
   apagarRascunho,
@@ -23,6 +29,7 @@ import {
   quandoFoi,
   type Rascunho,
 } from '@/lib/breach/rascunho';
+import { EXTENSOES, NOME_HERO, pastaDe } from '@/lib/breach/imagens';
 import { parseCategoryDir } from '@/lib/breach/slug';
 
 /** O documento está aberto para edição, ou não chegou a abrir. */
@@ -56,7 +63,18 @@ function Editor() {
 
   // `undefined` enquanto carrega; `null` quando a conferência não está
   // disponível — o GitHub cortou a árvore, ou a chamada falhou.
-  const [arquivos, setArquivos] = useState<Set<string> | null | undefined>(undefined);
+  const [arvore, setArvore] = useState<Map<string, string> | null | undefined>(undefined);
+  /** O markdown de todo o acervo, lido só quando a mudança de caminho precisa. */
+  const [textos, setTextos] = useState<Map<string, string> | null>(null);
+  const [lendoAcervo, setLendoAcervo] = useState(false);
+  const [imagens, setImagens] = useState<ImagemPronta[]>([]);
+  const [painel, setPainel] = useState<'nenhum' | 'ilustracoes' | 'caminho' | 'novo'>('nenhum');
+  const [sugestaoDeCaminho, setSugestaoDeCaminho] = useState<string | undefined>(undefined);
+  const areaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Quem só precisa saber o que existe recebe os caminhos; o sha só interessa a
+  // quem move arquivo sem reenviar conteúdo.
+  const arquivos = useMemo(() => (arvore ? new Set(arvore.keys()) : null), [arvore]);
 
   const sujo = conteudo !== original;
 
@@ -129,10 +147,10 @@ function Editor() {
     let cancelado = false;
     listarArvore(token)
       .then((lista) => {
-        if (!cancelado) setArquivos(lista);
+        if (!cancelado) setArvore(lista);
       })
       .catch(() => {
-        if (!cancelado) setArquivos(null);
+        if (!cancelado) setArvore(null);
       });
     return () => {
       cancelado = true;
@@ -187,22 +205,102 @@ function Editor() {
     setInsistindo(false);
   };
 
+  /** Enfia um trecho onde o cursor está — é como a citação da imagem entra. */
+  const inserirNoCursor = (trecho: string): void => {
+    const area = areaRef.current;
+    const corte = area ? area.selectionStart : conteudo.length;
+    mudar(conteudo.slice(0, corte) + trecho + conteudo.slice(corte));
+    requestAnimationFrame(() => {
+      if (!area) return;
+      const fim = corte + trecho.length;
+      area.focus();
+      area.setSelectionRange(fim, fim);
+    });
+  };
+
+  /**
+   * Lê o markdown do acervo inteiro. Só a mudança de caminho precisa disto —
+   * para saber quem cita o que vai sair do lugar não há atalho.
+   */
+  const lerAcervo = async (): Promise<void> => {
+    if (!arvore) return;
+    setLendoAcervo(true);
+    setErro('');
+    try {
+      const mds = [...arvore.entries()].filter(([caminho]) => caminho.toLowerCase().endsWith('.md'));
+      const lidos = await Promise.all(
+        mds.map(async ([caminho, blobSha]) => [caminho, await lerBlob(blobSha, token)] as const),
+      );
+      setTextos(new Map(lidos));
+    } catch (error: unknown) {
+      setErro(error instanceof GithubApiError ? error.message : 'Falha ao ler o acervo.');
+    } finally {
+      setLendoAcervo(false);
+    }
+  };
+
+  /**
+   * Grava um punhado de arquivos como um commit só, e leva para o documento no
+   * lugar novo quando ele mudou de caminho.
+   */
+  const gravarEmArvore = async (
+    mudancas: Mudanca[],
+    mensagemDoCommit: string,
+    destino: string,
+  ): Promise<void> => {
+    setGravacao('enviando');
+    setErro('');
+    setGravado(null);
+    try {
+      const feito = await commitarArvore(mudancas, mensagemDoCommit, token);
+      setGravado(feito);
+      setGravacao('parada');
+      setPainel('nenhum');
+      setImagens([]);
+      setTextos(null);
+      setInsistindo(false);
+      apagarRascunho(path);
+      setArvore(await listarArvore(token));
+      if (destino !== path) {
+        window.location.search = `?doc=${encodeURIComponent(destino)}`;
+      } else {
+        const atual = await lerArquivo(path, token);
+        if (atual) {
+          setOriginal(atual.conteudo);
+          setConteudo(atual.conteudo);
+          setSha(atual.sha);
+        }
+      }
+    } catch (error: unknown) {
+      setErro(error instanceof GithubApiError ? error.message : 'Falha ao falar com o GitHub.');
+      setGravacao('parada');
+    }
+  };
+
   const enviar = async (shaAlvo: string): Promise<void> => {
     const texto = mensagem.trim();
     if (!texto) return;
     const enviado = paraGravar;
+    const mensagemCompleta = prefixo ? `${prefixo}: ${texto}` : texto;
+
+    // Com imagem escolhida, o texto e os arquivos entram no mesmo commit: a
+    // citação e a imagem que ela cita nunca chegam separadas ao acervo.
+    if (temImagem) {
+      const mudancas: Mudanca[] = [
+        { tipo: 'texto', path, conteudo: enviado },
+        ...mudancasDeImagem(imagens, heroAtual),
+      ];
+      await gravarEmArvore(mudancas, mensagemCompleta, path);
+      setMensagem('');
+      return;
+    }
+
     setGravacao('enviando');
     setErro('');
     setGravado(null);
 
     try {
-      const feito = await gravarArquivo(
-        path,
-        enviado,
-        shaAlvo,
-        prefixo ? `${prefixo}: ${texto}` : texto,
-        token,
-      );
+      const feito = await gravarArquivo(path, enviado, shaAlvo, mensagemCompleta, token);
       // O texto da tela passa a ser o que foi gravado, com a data já carimbada.
       setConteudo(enviado);
       setOriginal(enviado);
@@ -247,7 +345,15 @@ function Editor() {
   };
 
   const enviando = gravacao === 'enviando';
-  const podeGravar = sujo && mensagem.trim().length > 0 && !enviando;
+  const temImagem = imagens.length > 0;
+  const podeGravar = (sujo || temImagem) && mensagem.trim().length > 0 && !enviando;
+
+  const heroAtual = arquivos
+    ? EXTENSOES.map((ext) => {
+        const pasta = pastaDe(path);
+        return `${pasta ? `${pasta}/` : ''}${NOME_HERO}.${ext}`;
+      }).find((caminho) => arquivos.has(caminho)) ?? null
+    : null;
 
   return (
     <PageHead eyebrow="Modo administrador" title={path}>
@@ -309,7 +415,70 @@ function Editor() {
                 // fecha o teclado e perde a posição da rolagem.
                 readOnly={enviando}
               />
-              <Previa bruto={paraGravar} path={path} arquivos={arquivos ?? null} />
+              <Previa
+                bruto={paraGravar}
+                path={path}
+                arquivos={arquivos}
+                pendentes={imagens}
+              />
+            </div>
+
+            <div className="painel">
+              <div className="painel__abas">
+                {(
+                  [
+                    ['ilustracoes', 'Ilustrações'],
+                    ['caminho', 'Mudar de caminho'],
+                    ['novo', 'Documento novo'],
+                  ] as const
+                ).map(([chave, rotulo]) => (
+                  <button
+                    key={chave}
+                    type="button"
+                    className="painel__aba"
+                    data-aberta={painel === chave}
+                    onClick={() => setPainel((atual) => (atual === chave ? 'nenhum' : chave))}
+                  >
+                    {rotulo}
+                  </button>
+                ))}
+              </div>
+
+              {painel === 'ilustracoes' ? (
+                <Ilustracoes
+                  path={path}
+                  bruto={conteudo}
+                  arquivos={arquivos}
+                  pendentes={imagens}
+                  onPendentes={setImagens}
+                  onTexto={mudar}
+                  onInserir={inserirNoCursor}
+                  onVirarEntidade={() => {
+                    setSugestaoDeCaminho(path.replace(/\.md$/i, '/README.md'));
+                    setPainel('caminho');
+                  }}
+                />
+              ) : null}
+
+              {painel === 'caminho' ? (
+                <MudarCaminho
+                  key={sugestaoDeCaminho ?? path}
+                  path={path}
+                  acervo={arvore ?? null}
+                  textos={textos}
+                  carregando={lendoAcervo}
+                  onCarregar={() => void lerAcervo()}
+                  onGravar={(mudancas, msg, destino) => void gravarEmArvore(mudancas, msg, destino)}
+                  sugestao={sugestaoDeCaminho}
+                />
+              ) : null}
+
+              {painel === 'novo' ? (
+                <DocumentoNovo
+                  acervo={arvore ?? null}
+                  onGravar={(mudancas, msg, destino) => void gravarEmArvore(mudancas, msg, destino)}
+                />
+              ) : null}
             </div>
 
             {gravacao === 'conflito' && remoto ? (
@@ -408,11 +577,11 @@ function Editor() {
               </p>
             ) : null}
 
-            {!sujo && !gravado ? (
+            {!sujo && !temImagem && !gravado ? (
               <p className="editor__dica">Nada mudou ainda — o texto é igual ao do acervo.</p>
             ) : null}
 
-            {arquivos === null ? (
+            {arvore === null ? (
               <p className="editor__dica">
                 Conferência de referências indisponível: não deu para listar o acervo. O CI continua
                 conferindo depois do commit.

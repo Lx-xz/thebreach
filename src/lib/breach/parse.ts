@@ -12,12 +12,17 @@ import { mergeTallies, tallyMarkers } from './markers';
 import {
   deaccent,
   hrefForPath,
+  labelFromPath,
   looksLikeDocPath,
   normalizeDocPath,
   parseCategoryDir,
   resolverRefRelativa,
   slugify,
 } from './slug';
+
+// `labelFromPath` mudou para `slug.ts`, para o editor poder usá-la no
+// navegador — `parse.ts` depende de `source.ts`, que lê do disco.
+export { labelFromPath };
 import { pastaDe } from './imagens';
 import { githubUrlFor } from './source';
 
@@ -25,25 +30,6 @@ const EMPTY_VALUES = new Set(['—', '-', '–', '(nenhum)', '(vazio)', '(nenhum
 
 function isEmptyValue(value: string): boolean {
   return EMPTY_VALUES.has(value.trim().toLowerCase());
-}
-
-function humanize(stem: string): string {
-  const spaced = stem.replace(/^\d{4}-\d{2}-\d{2}-/, '').replace(/-/g, ' ');
-  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
-}
-
-/** Título legível a partir do caminho, usado enquanto o real não é conhecido. */
-export function labelFromPath(filePath: string): string {
-  const segments = normalizeDocPath(filePath).split('/');
-  const stem = (segments[segments.length - 1] ?? '').replace(/\.md$/i, '');
-  if (stem.toUpperCase() !== 'README') return humanize(stem);
-
-  // O documento de uma entidade chama-se README: o nome está na pasta
-  // (CONVENCOES.md §6).
-  const dir = segments[segments.length - 2] ?? '';
-  if (!dir) return 'Compêndio';
-  const parsed = parseCategoryDir(dir);
-  return parsed ? parsed.slug : humanize(dir);
 }
 
 /**
