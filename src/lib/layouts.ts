@@ -17,6 +17,8 @@ export const STORAGE_KEYS = {
   tools: 'breach:tools',
   admin: 'breach:admin',
   token: 'breach:gh-token',
+  /** Prefixo: a chave de cada rascunho leva o caminho do documento no fim. */
+  rascunho: 'breach:rascunho',
 } as const;
 
 export function isNavMode(value: unknown): value is NavMode {

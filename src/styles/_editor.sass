@@ -106,6 +106,15 @@
   border: 1px solid var(--border)
   color: var(--fg-muted)
 
+.editor__estado--erro
+  border-color: var(--m-disputado-bd)
+  background: var(--m-disputado-bg)
+  color: var(--m-disputado-fg)
+
+.editor__dica
+  font-size: var(--step--2)
+  color: var(--ink-4)
+
 .editor__area
   width: 100%
   min-height: 60vh
@@ -118,3 +127,187 @@
   font-size: var(--step--1)
   line-height: var(--leading)
   resize: vertical
+
+  // Enquanto a gravação está a caminho o campo fica só de leitura.
+  &[readonly]
+    opacity: 0.7
+
+// --- Ações ------------------------------------------------------------------
+
+.editor__acoes
+  display: flex
+  flex-wrap: wrap
+  gap: var(--space-3)
+
+.editor__botao
+  display: inline-flex
+  align-items: center
+  gap: var(--space-2)
+  padding: var(--space-3) var(--space-4)
+  border-radius: var(--radius-m)
+  border: 1px solid var(--border)
+  font-family: var(--font-sans)
+  font-size: var(--step--1)
+  color: var(--fg)
+  background: var(--bg-surface)
+
+  &:hover:not(:disabled)
+    border-color: var(--accent-ink)
+
+  &:disabled
+    opacity: 0.5
+    cursor: not-allowed
+
+.editor__botao--forte
+  color: var(--accent-ink)
+  background: var(--accent-soft)
+
+.editor__botao--fraco
+  color: var(--fg-muted)
+  background: transparent
+
+// --- Mensagem do commit -----------------------------------------------------
+
+.editor__mensagem
+  display: flex
+  flex-direction: column
+  gap: var(--space-2)
+
+.editor__rotulo
+  font-family: var(--font-sans)
+  font-size: var(--step--1)
+  color: var(--fg-muted)
+
+// O assunto do commit não é digitado: sai do caminho do documento e fica
+// colado no campo, como parte dele.
+.editor__campo
+  display: flex
+  align-items: stretch
+  border: 1px solid var(--border)
+  border-radius: var(--radius-m)
+  background: var(--bg-app)
+  overflow: hidden
+
+  &:focus-within
+    outline: 2px solid var(--accent)
+    outline-offset: 1px
+
+  input
+    flex: 1
+    min-width: 0
+    border: 0
+    padding: var(--space-3)
+    font-size: var(--step-0)
+    background: transparent
+    color: var(--fg)
+
+    &:focus
+      outline: none
+
+.editor__prefixo
+  display: flex
+  align-items: center
+  padding: 0 var(--space-2) 0 var(--space-3)
+  font-family: var(--font-mono)
+  font-size: var(--step--1)
+  color: var(--ink-4)
+  background: var(--mat)
+
+// --- Rascunho, conflito e confirmação ---------------------------------------
+
+.editor__rascunho,
+.editor__conflito
+  display: flex
+  flex-direction: column
+  gap: var(--space-3)
+  padding: var(--space-4)
+  border-radius: var(--radius-m)
+  border: 1px solid var(--m-canonico-bd)
+  background: var(--m-canonico-bg)
+  color: var(--m-canonico-fg)
+
+.editor__conflito
+  border-color: var(--m-disputado-bd)
+  background: var(--m-disputado-bg)
+  color: var(--m-disputado-fg)
+
+.editor__conflito-aviso
+  font-size: var(--step--1)
+
+.editor__gravado
+  padding: var(--space-4)
+  border-radius: var(--radius-m)
+  border: 1px solid var(--m-atestado-bd)
+  background: var(--m-atestado-bg)
+  color: var(--m-atestado-fg)
+
+  a
+    color: inherit
+
+// --- O que muda -------------------------------------------------------------
+
+.editor__diff
+  display: flex
+  flex-direction: column
+  gap: var(--space-2)
+
+.editor__diff-resumo
+  display: flex
+  align-items: baseline
+  gap: var(--space-3)
+  font-family: var(--font-mono)
+  font-size: var(--step--2)
+
+.editor__diff-conta--mais
+  color: var(--m-atestado-fg)
+
+.editor__diff-conta--menos
+  color: var(--m-disputado-fg)
+
+.editor__diff-lados
+  font-family: var(--font-sans)
+  color: var(--ink-4)
+
+.editor__diff-corpo
+  border: 1px solid var(--border)
+  border-radius: var(--radius-m)
+  background: var(--bg-surface)
+  overflow: hidden
+
+.diffline
+  display: flex
+  gap: var(--space-2)
+  padding: 0 var(--space-3)
+  font-family: var(--font-mono)
+  font-size: var(--step--2)
+  line-height: 1.6
+  // O markdown do acervo tem linhas longas; num telefone elas têm de quebrar.
+  white-space: pre-wrap
+  overflow-wrap: anywhere
+
+.diffline__sinal
+  flex: none
+  width: 1ch
+  color: var(--ink-4)
+
+.diffline--mais
+  background: var(--m-atestado-bg)
+  color: var(--m-atestado-fg)
+
+  .diffline__sinal
+    color: inherit
+
+.diffline--menos
+  background: var(--m-disputado-bg)
+  color: var(--m-disputado-fg)
+
+  .diffline__sinal
+    color: inherit
+
+.diffline--corte
+  padding: var(--space-1) var(--space-3)
+  border-top: 1px solid var(--border)
+  border-bottom: 1px solid var(--border)
+  background: var(--mat)
+  color: var(--ink-4)
+  font-size: var(--step--2)
