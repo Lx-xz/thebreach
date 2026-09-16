@@ -69,6 +69,23 @@ export function hrefForPath(filePath: string): string | null {
   return `/c/${category.slug}/${trail.join('/')}`;
 }
 
+/**
+ * Esta entidade pode conter outras?
+ *
+ * Só quem é pasta pode receber um documento dentro — §6: entidade é pasta, e o
+ * documento dela é o `README.md`. Fora isso, quem decide é o posto: a
+ * **espécie** é a folha da régua `classe › ordem › família › espécie` e não
+ * agrupa ninguém. Categoria, classe e família agrupam, e é dentro delas que a
+ * espécie nova nasce.
+ */
+export function podeConterEntidades(filePath: string, subtipo: string | null): boolean {
+  if (!/(^|\/)README\.md$/i.test(filePath)) return false;
+  // "A regra vale abaixo das pastas numeradas" (§6): a raiz do acervo não
+  // recebe entidade, e o `00-meta` não é categoria.
+  if (!parseCategoryDir(filePath.split('/')[0] ?? '')) return false;
+  return deaccent(subtipo ?? '').toLowerCase() !== 'especie';
+}
+
 /** Reconhece uma referência a documento ou entidade do acervo escrita como texto. */
 export function looksLikeDocPath(value: string): boolean {
   const raw = value.trim();

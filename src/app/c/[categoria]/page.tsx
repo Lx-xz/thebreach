@@ -3,6 +3,8 @@ import type { Metadata } from 'next';
 import { FolderOpen, ScrollText } from 'lucide-react';
 import { getCategories, getCategory } from '@/lib/breach/api';
 import { Chip, Crumbs, DocTree, Hero, PageHead } from '@/components/content';
+import { CriarLink } from '@/components/CriarLink';
+import { EditarLink } from '@/components/EditarLink';
 
 type Params = { categoria: string };
 
@@ -37,6 +39,12 @@ export default async function CategoryPage({ params }: { params: Promise<Params>
               icon={<FolderOpen size={13} aria-hidden="true" />}
             />
             {category.updatedAt ? <Chip label="Atualizado" value={category.updatedAt} /> : null}
+          </div>
+          {/* O índice da categoria é um documento como os outros (§6), e uma
+              categoria sempre agrupa entidades. */}
+          <div className="pagehead__acoes">
+            <EditarLink path={`${category.dir}/README.md`} />
+            <CriarLink pasta={category.dir} />
           </div>
         </PageHead>
       </div>
