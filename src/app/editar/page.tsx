@@ -29,6 +29,7 @@ import {
   type Rascunho,
 } from '@/lib/breach/rascunho';
 import { EXTENSOES, NOME_HERO, pastaDe } from '@/lib/breach/imagens';
+import { registrarGravado } from '@/lib/breach/recentes';
 import { parseCategoryDir } from '@/lib/breach/slug';
 
 /** O documento está aberto para edição, ou não chegou a abrir. */
@@ -59,6 +60,14 @@ function Editor() {
   const [gravado, setGravado] = useState<Gravacao | null>(null);
   const [verDiff, setVerDiff] = useState(false);
   const [insistindo, setInsistindo] = useState(false);
+  /**
+   * O documento saiu daqui: este caminho não existe mais.
+   *
+   * Sem isto, o editor continua vivo apontando para um caminho morto, e gravar
+   * recria ali o arquivo que a mudança acabou de tirar. Foi o que aconteceu com
+   * a narrativa do dia 14.
+   */
+  const [mudouDeCaminho, setMudouDeCaminho] = useState<string | null>(null);
 
   // `undefined` enquanto carrega; `null` quando a conferência não está
   // disponível — o GitHub cortou a árvore, ou a chamada falhou.
@@ -70,6 +79,9 @@ function Editor() {
   const [painel, setPainel] = useState<'nenhum' | 'ilustracoes' | 'caminho'>('nenhum');
   const [sugestaoDeCaminho, setSugestaoDeCaminho] = useState<string | undefined>(undefined);
   const areaRef = useRef<HTMLTextAreaElement>(null);
+  const folhaRef = useRef<HTMLDivElement>(null);
+  /** Quem está conduzindo a rolagem agora, para os dois não se empurrarem. */
+  const conduzindo = useRef<'area' | 'folha' | null>(null);
 
   // Quem só precisa saber o que existe recebe os caminhos; o sha só interessa a
   // quem move arquivo sem reenviar conteúdo.
@@ -166,15 +178,53 @@ function Editor() {
     return () => window.clearTimeout(tempo);
   }, [estado, sujo, path, sha, conteudo, mensagem]);
 
+  /**
+   * A rolagem da área de texto e a da prévia andam juntas, por proporção.
+   *
+   * Proporção e não linha a linha: mapear a linha do markdown para o elemento
+   * que ela virou exigiria marcar cada nó no pipeline, e para um documento
+   * destes a proporção acerta o bastante. Só vale lado a lado — empilhado, cada
+   * um rola com a página.
+   */
   useEffect(() => {
-    if (!sujo) return undefined;
+    const area = areaRef.current;
+    const folha = folhaRef.current;
+    if (!area || !folha || estado !== 'aberto') return undefined;
+
+    const casar = (de: HTMLElement, para: HTMLElement, quem: 'area' | 'folha') => () => {
+      if (conduzindo.current && conduzindo.current !== quem) return;
+      conduzindo.current = quem;
+      const curso = de.scrollHeight - de.clientHeight;
+      const destino = para.scrollHeight - para.clientHeight;
+      if (curso > 0 && destino > 0) para.scrollTop = (de.scrollTop / curso) * destino;
+      // Solta o comando no quadro seguinte: a rolagem que acabamos de impor
+      // dispara o evento do outro lado, e sem isto os dois se empurrariam.
+      requestAnimationFrame(() => {
+        conduzindo.current = null;
+      });
+    };
+
+    const daArea = casar(area, folha, 'area');
+    const daFolha = casar(folha, area, 'folha');
+    area.addEventListener('scroll', daArea, { passive: true });
+    folha.addEventListener('scroll', daFolha, { passive: true });
+    return () => {
+      area.removeEventListener('scroll', daArea);
+      folha.removeEventListener('scroll', daFolha);
+    };
+  }, [estado]);
+
+  useEffect(() => {
+    // Depois de gravar, não há o que perder: o aviso do navegador só atrapalha,
+    // e atrapalhar aqui significa ficar preso num caminho que não existe mais.
+    if (!sujo || mudouDeCaminho) return undefined;
     const avisar = (event: BeforeUnloadEvent): void => {
       event.preventDefault();
       event.returnValue = '';
     };
     window.addEventListener('beforeunload', avisar);
     return () => window.removeEventListener('beforeunload', avisar);
-  }, [sujo]);
+  }, [sujo, mudouDeCaminho]);
 
   if (!path) {
     return (
@@ -252,6 +302,16 @@ function Editor() {
     setGravado(null);
     try {
       const feito = await commitarArvore(mudancas, mensagemDoCommit, token);
+      // Cada documento que entrou no commit fica visível no próprio navegador
+      // enquanto a publicação não alcança.
+      for (const mudanca of mudancas) {
+        if (mudanca.tipo !== 'texto' || !mudanca.path.toLowerCase().endsWith('.md')) continue;
+        registrarGravado(mudanca.path, {
+          conteudo: mudanca.conteudo,
+          em: Date.now(),
+          commitUrl: feito.commitUrl,
+        });
+      }
       setGravado(feito);
       setGravacao('parada');
       setPainel('nenhum');
@@ -259,10 +319,19 @@ function Editor() {
       setTextos(null);
       setInsistindo(false);
       apagarRascunho(path);
-      setArvore(await listarArvore(token));
+
       if (destino !== path) {
+        // Primeiro desarma o aviso de saída, depois navega. Na ordem inversa o
+        // navegador pergunta "sair do site?", o Criador diz não — e fica num
+        // caminho morto com o editor ainda aceitando escrita.
+        setMudouDeCaminho(destino);
+        setOriginal(conteudo);
         window.location.search = `?doc=${encodeURIComponent(destino)}`;
-      } else {
+        return;
+      }
+
+      setArvore(await listarArvore(token));
+      {
         const atual = await lerArquivo(path, token);
         if (atual) {
           setOriginal(atual.conteudo);
@@ -300,6 +369,10 @@ function Editor() {
 
     try {
       const feito = await gravarArquivo(path, enviado, shaAlvo, mensagemCompleta, token);
+      // O site leva cerca de um minuto para reconstruir. Até lá, a página de
+      // leitura mostra a versão anterior — e sem isto pareceria que a gravação
+      // não pegou.
+      registrarGravado(path, { conteudo: enviado, em: Date.now(), commitUrl: feito.commitUrl });
       // O texto da tela passa a ser o que foi gravado, com a data já carimbada.
       setConteudo(enviado);
       setOriginal(enviado);
@@ -345,7 +418,8 @@ function Editor() {
 
   const enviando = gravacao === 'enviando';
   const temImagem = imagens.length > 0;
-  const podeGravar = (sujo || temImagem) && mensagem.trim().length > 0 && !enviando;
+  const morto = mudouDeCaminho !== null;
+  const podeGravar = (sujo || temImagem) && mensagem.trim().length > 0 && !enviando && !morto;
 
   const heroAtual = arquivos
     ? EXTENSOES.map((ext) => {
@@ -365,7 +439,14 @@ function Editor() {
           </p>
         ) : null}
 
-        {estado === 'aberto' ? (
+        {morto ? (
+          <p className="editor__gravado">
+            Este documento passou a ser <code>{mudouDeCaminho}</code>. Abrindo o lugar novo…{' '}
+            <a href={`?doc=${encodeURIComponent(mudouDeCaminho ?? '')}`}>ir agora</a>
+          </p>
+        ) : null}
+
+        {estado === 'aberto' && !morto ? (
           <>
             {rascunhoAchado ? (
               <div className="editor__rascunho">
@@ -419,6 +500,7 @@ function Editor() {
                 path={path}
                 arquivos={arquivos}
                 pendentes={imagens}
+                folhaRef={folhaRef}
               />
             </div>
 
@@ -462,8 +544,11 @@ function Editor() {
                 <MudarCaminho
                   key={sugestaoDeCaminho ?? path}
                   path={path}
+                  textoAtual={paraGravar}
                   acervo={arvore ?? null}
                   textos={textos}
+                  imagens={imagens}
+                  heroAtual={heroAtual}
                   carregando={lendoAcervo}
                   onCarregar={() => void lerAcervo()}
                   onGravar={(mudancas, msg, destino) => void gravarEmArvore(mudancas, msg, destino)}

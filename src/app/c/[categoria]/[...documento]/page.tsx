@@ -1,9 +1,10 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getBacklinks, getCategories, getCategory, getDoc } from '@/lib/breach/api';
+import { getBacklinks, getCategories, getCategory, getDoc, getGeradoEm } from '@/lib/breach/api';
 import { Crumbs, DocArticle, Hero, PageHead } from '@/components/content';
 import { CriarLink } from '@/components/CriarLink';
 import { EditarLink } from '@/components/EditarLink';
+import { Recente } from '@/components/Recente';
 import { podeConterEntidades } from '@/lib/breach/slug';
 
 // O slug de um documento tem um trecho por pasta de entidade: uma espécie
@@ -32,7 +33,7 @@ export default async function DocPage({ params }: { params: Promise<Params> }) {
   ]);
   if (!doc || !category) notFound();
 
-  const backlinks = await getBacklinks(doc.path);
+  const [backlinks, geradoEm] = await Promise.all([getBacklinks(doc.path), getGeradoEm()]);
   const eyebrow = doc.header.subtipo
     ? `${category.title} › ${doc.header.subtipo}`
     : doc.kind === 'narrativa'
@@ -69,6 +70,7 @@ export default async function DocPage({ params }: { params: Promise<Params> }) {
           ) : null}
         </div>
       </PageHead>
+      <Recente path={doc.path} geradoEm={geradoEm} />
       <DocArticle doc={doc} backlinks={backlinks} />
     </div>
   );

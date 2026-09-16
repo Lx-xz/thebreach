@@ -1,16 +1,30 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { mudancasDeImagem, type ImagemPronta } from '@/components/Ilustracoes';
 import { definirTitulo } from '@/lib/breach/cabecalho';
+import { pastaDe } from '@/lib/breach/imagens';
 import { planejarMudanca, type Plano } from '@/lib/breach/mover';
 import type { Mudanca } from '@/lib/breach/github';
 
 interface Props {
   path: string;
+  /**
+   * O texto que está na tela agora, não o que está no GitHub.
+   *
+   * A mudança tem de levar o que o Criador escreveu e ainda não gravou. Sem
+   * isto, mover um documento com edições abertas escreve a versão antiga no
+   * caminho novo e deixa as edições órfãs num caminho que não existe mais.
+   */
+  textoAtual: string;
   /** Caminho → sha de tudo que existe no acervo. */
   acervo: Map<string, string> | null;
   /** O markdown de cada `.md`, carregado sob demanda. */
   textos: Map<string, string> | null;
+  /** Imagens escolhidas e ainda não gravadas — vão no mesmo commit. */
+  imagens: ImagemPronta[];
+  /** A ilustração de abertura de hoje, para ser trocada junto. */
+  heroAtual: string | null;
   carregando: boolean;
   onCarregar: () => void;
   onGravar: (mudancas: Mudanca[], mensagem: string, destino: string) => void;
@@ -27,8 +41,11 @@ interface Props {
  */
 export function MudarCaminho({
   path,
+  textoAtual,
   acervo,
   textos,
+  imagens,
+  heroAtual,
   carregando,
   onCarregar,
   onGravar,
@@ -37,10 +54,19 @@ export function MudarCaminho({
   const [destino, setDestino] = useState(sugestao ?? path);
   const [titulo, setTitulo] = useState<string | null>(null);
 
+  // O documento que se move entra no plano com o texto da tela: é ele que vai
+  // para o caminho novo, com as referências recalculadas por cima dele.
+  const comOTextoDaTela = useMemo(
+    () => (textos ? new Map(textos).set(path, textoAtual) : null),
+    [textos, path, textoAtual],
+  );
+
   const plano: Plano | null = useMemo(() => {
-    if (!acervo || !textos || destino.trim() === path) return null;
-    return planejarMudanca(path, destino.trim(), acervo, textos);
-  }, [acervo, textos, path, destino]);
+    if (!acervo || !comOTextoDaTela || destino.trim() === path) return null;
+    return planejarMudanca(path, destino.trim(), acervo, comOTextoDaTela);
+  }, [acervo, comOTextoDaTela, path, destino]);
+
+  const naoGravado = Boolean(textos && textos.get(path) !== textoAtual);
 
   // O título proposto só entra depois que o Criador o vê; enquanto ele não
   // mexer, vale o que o plano sugeriu.
@@ -53,7 +79,7 @@ export function MudarCaminho({
 
     // O título acompanha o nome da pasta (§6), mas só se for para acompanhar.
     if (tituloFinal && plano.tituloProposto) {
-      const atual = reescritos.get(destino) ?? textos?.get(path) ?? '';
+      const atual = reescritos.get(destino) ?? textoAtual;
       reescritos.set(destino, definirTitulo(atual, tituloFinal));
     }
 
@@ -69,6 +95,20 @@ export function MudarCaminho({
     }
     for (const { de } of plano.arquivos) {
       mudancas.push({ tipo: 'remover', path: de });
+    }
+
+    // As imagens escolhidas vão no mesmo commit, já na pasta nova — senão elas
+    // nasceriam numa pasta que o próprio commit acaba de esvaziar.
+    const pastaNova = pastaDe(destino);
+    const remapear = (caminho: string): string =>
+      `${pastaNova ? `${pastaNova}/` : ''}${caminho.split('/').pop() ?? caminho}`;
+    for (const mudanca of mudancasDeImagem(
+      imagens.map((imagem) => ({ ...imagem, path: remapear(imagem.path) })),
+      heroAtual ? remapear(heroAtual) : null,
+    )) {
+      // O hero antigo já sai junto com a pasta; remover de novo não faz sentido.
+      if (mudanca.tipo === 'remover' && plano.arquivos.some((a) => a.para === mudanca.path)) continue;
+      mudancas.push(mudanca);
     }
 
     onGravar(mudancas, `acervo: ${path} passa a ser ${destino}`, destino);
@@ -111,6 +151,19 @@ export function MudarCaminho({
 
       {plano?.erro ? (
         <p className="editor__estado editor__estado--erro">{plano.erro}</p>
+      ) : null}
+
+      {naoGravado ? (
+        <p className="editor__dica">
+          O texto da sua tela ainda não está gravado — a mudança leva ele junto, no mesmo commit.
+        </p>
+      ) : null}
+
+      {imagens.length ? (
+        <p className="editor__dica">
+          {imagens.length === 1 ? 'A imagem escolhida vai' : `As ${imagens.length} imagens escolhidas vão`}{' '}
+          junto, já na pasta nova.
+        </p>
       ) : null}
 
       {plano && !plano.erro ? (

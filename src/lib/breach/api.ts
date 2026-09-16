@@ -258,6 +258,17 @@ export function getCompendium(): Promise<Compendium> {
   return pending;
 }
 
+/**
+ * Quando este site foi construído.
+ *
+ * É a régua do aviso de página atrasada: gravação anterior a isto já está no
+ * ar, gravação posterior ainda não.
+ */
+export async function getGeradoEm(): Promise<string> {
+  const compendium = await getCompendium();
+  return compendium.source.fetchedAt;
+}
+
 export async function getCategories(): Promise<BreachCategory[]> {
   return (await getCompendium()).categories;
 }

@@ -14,6 +14,8 @@ interface Props {
   arquivos: Set<string> | null;
   /** Imagens escolhidas nesta sessão e ainda não gravadas. */
   pendentes?: ImagemPronta[];
+  /** A folha que rola, para a página casar a rolagem com a área de texto. */
+  folhaRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 /** Espera antes de renderizar, para não reprocessar a cada tecla. */
@@ -35,7 +37,7 @@ const ESPERA = 300;
  * título como o markdown o escreve (`1. Descrição geral`). O conteúdo dentro
  * das seções é o mesmo, conferido contra as páginas geradas.
  */
-export function Previa({ bruto, path, arquivos, pendentes = [] }: Props) {
+export function Previa({ bruto, path, arquivos, pendentes = [], folhaRef }: Props) {
   const [html, setHtml] = useState('');
   const [erro, setErro] = useState('');
 
@@ -85,7 +87,7 @@ export function Previa({ bruto, path, arquivos, pendentes = [] }: Props) {
     <div className="previa">
       <p className="previa__titulo">Como vai ficar</p>
       {erro ? <p className="editor__estado editor__estado--erro">{erro}</p> : null}
-      <div className="previa__folha">
+      <div className="previa__folha" ref={folhaRef}>
         {hero ? (
           <figure className="hero">
             {/* Export estático: imagem simples, sem o otimizador do Next. */}

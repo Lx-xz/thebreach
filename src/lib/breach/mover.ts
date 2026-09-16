@@ -207,7 +207,12 @@ export function planejarMudanca(
       citacoes.push({ documento: mapa.get(documento) ?? documento, escrita: ref.escrita, nova });
     }
 
-    if (saida !== texto) reescritos.set(mapa.get(documento) ?? documento, saida);
+    // O documento que se move entra **sempre** como texto, mesmo quando nenhuma
+    // referência mudou. O que vale para o caminho novo é o texto que chegou
+    // aqui — que é o da tela do Criador, com as edições ainda não gravadas.
+    // Reaproveitar o blob antigo neste caso escreveria a versão do GitHub e
+    // deixaria as edições órfãs num caminho que o commit acaba de apagar.
+    if (seMoveu || saida !== texto) reescritos.set(mapa.get(documento) ?? documento, saida);
   }
 
   // O §6 diz que o nome da pasta carrega o nome comum da entidade: mudou a
