@@ -7,6 +7,9 @@ import type { Mudanca } from '@/lib/breach/github';
 
 interface Props {
   acervo: Map<string, string> | null;
+  /** Pasta onde o documento nasce, vinda da entidade de onde se clicou. */
+  pastaInicial?: string;
+  ocupado?: boolean;
   onGravar: (mudancas: Mudanca[], mensagem: string, destino: string) => void;
 }
 
@@ -50,8 +53,8 @@ function pastasDisponiveis(acervo: Map<string, string>): string[] {
   return [...pastas].filter((p) => /^\d{2}-/.test(p)).sort();
 }
 
-export function DocumentoNovo({ acervo, onGravar }: Props) {
-  const [mae, setMae] = useState('');
+export function DocumentoNovo({ acervo, pastaInicial = '', ocupado = false, onGravar }: Props) {
+  const [mae, setMae] = useState(pastaInicial);
   const [nome, setNome] = useState('');
   const [classificacao, setClassificacao] = useState('');
   const [status, setStatus] = useState<string>(STATUS[0]);
@@ -184,9 +187,9 @@ export function DocumentoNovo({ acervo, onGravar }: Props) {
         type="button"
         className="editor__botao editor__botao--forte"
         onClick={gravar}
-        disabled={!destino || jaExiste}
+        disabled={!destino || jaExiste || ocupado}
       >
-        Criar documento
+        {ocupado ? 'Criando…' : 'Criar documento'}
       </button>
     </div>
   );

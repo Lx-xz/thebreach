@@ -2,7 +2,9 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getBacklinks, getCategories, getCategory, getDoc } from '@/lib/breach/api';
 import { Crumbs, DocArticle, Hero, PageHead } from '@/components/content';
+import { CriarLink } from '@/components/CriarLink';
 import { EditarLink } from '@/components/EditarLink';
+import { podeConterEntidades } from '@/lib/breach/slug';
 
 // O slug de um documento tem um trecho por pasta de entidade: uma espécie
 // dentro da classe vira `dragoes/dragao-barbado`. Daí a rota catch-all.
@@ -60,7 +62,12 @@ export default async function DocPage({ params }: { params: Promise<Params> }) {
         ]}
       />
       <PageHead eyebrow={eyebrow} title={doc.title}>
-        <EditarLink path={doc.path} />
+        <div className="pagehead__acoes">
+          <EditarLink path={doc.path} />
+          {podeConterEntidades(doc.path, doc.header.subtipo) ? (
+            <CriarLink pasta={doc.path.replace(/\/README\.md$/i, '')} />
+          ) : null}
+        </div>
       </PageHead>
       <DocArticle doc={doc} backlinks={backlinks} />
     </div>

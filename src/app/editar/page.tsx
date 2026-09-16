@@ -5,7 +5,6 @@ import { useSearchParams } from 'next/navigation';
 import { PageHead } from '@/components/content';
 import { Cabecalho } from '@/components/Cabecalho';
 import { DiffView } from '@/components/DiffView';
-import { DocumentoNovo } from '@/components/DocumentoNovo';
 import { Ilustracoes, mudancasDeImagem, type ImagemPronta } from '@/components/Ilustracoes';
 import { MudarCaminho } from '@/components/MudarCaminho';
 import { Previa } from '@/components/Previa';
@@ -68,7 +67,7 @@ function Editor() {
   const [textos, setTextos] = useState<Map<string, string> | null>(null);
   const [lendoAcervo, setLendoAcervo] = useState(false);
   const [imagens, setImagens] = useState<ImagemPronta[]>([]);
-  const [painel, setPainel] = useState<'nenhum' | 'ilustracoes' | 'caminho' | 'novo'>('nenhum');
+  const [painel, setPainel] = useState<'nenhum' | 'ilustracoes' | 'caminho'>('nenhum');
   const [sugestaoDeCaminho, setSugestaoDeCaminho] = useState<string | undefined>(undefined);
   const areaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -429,7 +428,6 @@ function Editor() {
                   [
                     ['ilustracoes', 'Ilustrações'],
                     ['caminho', 'Mudar de caminho'],
-                    ['novo', 'Documento novo'],
                   ] as const
                 ).map(([chave, rotulo]) => (
                   <button
@@ -470,13 +468,6 @@ function Editor() {
                   onCarregar={() => void lerAcervo()}
                   onGravar={(mudancas, msg, destino) => void gravarEmArvore(mudancas, msg, destino)}
                   sugestao={sugestaoDeCaminho}
-                />
-              ) : null}
-
-              {painel === 'novo' ? (
-                <DocumentoNovo
-                  acervo={arvore ?? null}
-                  onGravar={(mudancas, msg, destino) => void gravarEmArvore(mudancas, msg, destino)}
                 />
               ) : null}
             </div>
