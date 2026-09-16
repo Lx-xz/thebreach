@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { ImagemPronta } from '@/components/Ilustracoes';
 import { semCabecalho } from '@/lib/breach/cabecalho';
-import { ilustracaoDe } from '@/lib/breach/imagens';
+import { ilustracaoDe, urlDaImagem } from '@/lib/breach/imagens';
 import { renderMarkdown } from '@/lib/breach/markdown';
 
 interface Props {
@@ -11,6 +12,8 @@ interface Props {
   path: string;
   /** Tudo que existe no acervo, para achar a ilustração de abertura. */
   arquivos: Set<string> | null;
+  /** Imagens escolhidas nesta sessão e ainda não gravadas. */
+  pendentes?: ImagemPronta[];
 }
 
 /** Espera antes de renderizar, para não reprocessar a cada tecla. */
@@ -32,7 +35,7 @@ const ESPERA = 300;
  * título como o markdown o escreve (`1. Descrição geral`). O conteúdo dentro
  * das seções é o mesmo, conferido contra as páginas geradas.
  */
-export function Previa({ bruto, path, arquivos }: Props) {
+export function Previa({ bruto, path, arquivos, pendentes = [] }: Props) {
   const [html, setHtml] = useState('');
   const [erro, setErro] = useState('');
 
@@ -58,9 +61,25 @@ export function Previa({ bruto, path, arquivos }: Props) {
     };
   }, [bruto, path]);
 
+  /**
+   * A imagem recém-escolhida ainda não existe no site: as ilustrações são
+   * servidas de `public/acervo/`, que o build preenche. Sem esta troca ela
+   * apareceria como quadro quebrado, e quadro quebrado parece falha.
+   */
+  const comLocais = useMemo(() => {
+    let saida = html;
+    for (const imagem of pendentes) {
+      saida = saida.split(urlDaImagem(imagem.path)).join(imagem.objectURL);
+    }
+    return saida;
+  }, [html, pendentes]);
+
   // A página real desenha a ilustração de abertura no topo, fora do corpo:
   // sem isto a prévia mostraria o documento sem a imagem que ele tem no site.
-  const hero = arquivos ? ilustracaoDe(path, arquivos) : null;
+  const heroPendente = pendentes.find((imagem) => imagem.hero);
+  const hero =
+    heroPendente?.objectURL ??
+    (arquivos ? ilustracaoDe(path, new Set([...arquivos, ...pendentes.map((i) => i.path)])) : null);
 
   return (
     <div className="previa">
@@ -75,7 +94,7 @@ export function Previa({ bruto, path, arquivos }: Props) {
           </figure>
         ) : null}
         {/* O HTML sai do pipeline do projeto, com `allowDangerousHtml: false`. */}
-        <div className="prose" dangerouslySetInnerHTML={{ __html: html }} />
+        <div className="prose" dangerouslySetInnerHTML={{ __html: comLocais }} />
       </div>
     </div>
   );

@@ -23,7 +23,7 @@ import { withBase } from './slug';
 export const NOME_HERO = 'hero';
 
 /** Extensões aceitas, em ordem de preferência. */
-const EXTENSOES = ['png', 'webp', 'jpg', 'jpeg', 'avif', 'svg'] as const;
+export const EXTENSOES = ['png', 'webp', 'jpg', 'jpeg', 'avif', 'svg'] as const;
 
 export function ehImagem(caminho: string): boolean {
   const ext = caminho.split('.').pop()?.toLowerCase();
@@ -58,6 +58,13 @@ export function ehHeroDe(pasta: string, caminhoNoAcervo: string): boolean {
 }
 
 export function ilustracaoDe(caminhoDoDocumento: string, arquivos: Set<string>): string | null {
+  // O hero é ilustração de **entidade** (§8), e entidade é pasta (§6): o dono
+  // do `hero` de uma pasta é o `README.md` dela, e mais ninguém. Sem esta
+  // guarda, um documento solto dentro de uma categoria — `01-cosmologia/o-criador.md`
+  // — herdaria o `01-cosmologia/hero.png`, que ilustra o índice da categoria,
+  // e o mesmo desenho apareceria como se fosse de cada documento solto dali.
+  if (!/(^|\/)README\.md$/i.test(caminhoDoDocumento)) return null;
+
   const pasta = pastaDe(caminhoDoDocumento);
   const prefixo = pasta ? `${pasta}/` : '';
   for (const ext of EXTENSOES) {
