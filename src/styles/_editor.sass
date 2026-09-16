@@ -93,7 +93,19 @@
   display: flex
   flex-direction: column
   gap: var(--space-4)
-  max-width: var(--measure)
+  // Sem `--measure` aqui: aquela é a medida de leitura, e apertaria as duas
+  // colunas da bancada.
+
+// Texto e prévia lado a lado no computador; no telefone, um sob o outro. O
+// corte é o mesmo `72rem` que o AppShell já usa para tela larga.
+.editor__bancada
+  display: grid
+  gap: var(--space-4)
+  grid-template-columns: 1fr
+  align-items: start
+
+  @media (min-width: 72rem)
+    grid-template-columns: 1fr 1fr
 
 .editor__path
   font-family: var(--font-mono)
@@ -311,3 +323,142 @@
   background: var(--mat)
   color: var(--ink-4)
   font-size: var(--step--2)
+
+// --- Formulário do cabeçalho ------------------------------------------------
+
+.cabecalho
+  display: flex
+  flex-direction: column
+  gap: var(--space-3)
+  padding: var(--space-4)
+  border: 1px solid var(--border)
+  border-radius: var(--radius-m)
+  background: var(--bg-surface)
+
+  @media (min-width: 48rem)
+    display: grid
+    grid-template-columns: repeat(2, minmax(0, 1fr))
+    gap: var(--space-3) var(--space-4)
+
+.cabecalho__titulo
+  font-family: var(--font-sans)
+  font-size: var(--step--1)
+  color: var(--fg-muted)
+
+  @media (min-width: 48rem)
+    grid-column: 1 / -1
+
+.cabecalho__campo
+  display: flex
+  flex-direction: column
+  gap: var(--space-1)
+  min-width: 0
+
+.cabecalho__rotulo
+  display: flex
+  align-items: center
+  gap: var(--space-2)
+  font-family: var(--font-sans)
+  font-size: var(--step--2)
+  color: var(--fg-muted)
+
+// Campo que não está no documento: §3 diz que campo ausente é campo esquecido.
+.cabecalho__ausente
+  padding: 0 var(--space-2)
+  border-radius: var(--radius-pill)
+  border: 1px solid var(--m-lacuna-bd)
+  font-size: var(--step--2)
+  color: var(--m-lacuna-fg)
+
+.cabecalho__campo input,
+.cabecalho__campo select
+  width: 100%
+  min-width: 0
+  padding: var(--space-2) var(--space-3)
+  border: 1px solid var(--border)
+  border-radius: var(--radius-m)
+  background: var(--bg-app)
+  color: var(--fg)
+  font-family: var(--font-sans)
+  font-size: var(--step--1)
+
+  &:focus
+    outline: 2px solid var(--accent)
+    outline-offset: 1px
+
+  &[readonly]
+    color: var(--ink-4)
+    background: var(--mat)
+
+.cabecalho__dica
+  font-size: var(--step--2)
+  color: var(--ink-4)
+
+  code
+    font-family: var(--font-mono)
+
+.cabecalho > .cabecalho__dica
+  @media (min-width: 48rem)
+    grid-column: 1 / -1
+
+// --- Prévia -----------------------------------------------------------------
+
+.previa
+  display: flex
+  flex-direction: column
+  gap: var(--space-2)
+  min-width: 0
+
+.previa__titulo
+  font-family: var(--font-sans)
+  font-size: var(--step--2)
+  color: var(--fg-muted)
+
+.previa__folha
+  min-height: 60vh
+  max-height: 80vh
+  overflow-y: auto
+  padding: var(--space-5)
+  border: 1px solid var(--border)
+  border-radius: var(--radius-m)
+  background: var(--bg-surface)
+
+  // A folha é estreita: a ilustração de abertura não precisa do tamanho cheio.
+  .hero
+    margin-top: 0
+
+// --- Referências para o vazio -----------------------------------------------
+
+.editor__achados
+  display: flex
+  flex-direction: column
+  gap: var(--space-2)
+  padding: var(--space-4)
+  border-radius: var(--radius-m)
+  border: 1px solid var(--m-disputado-bd)
+  background: var(--m-disputado-bg)
+  color: var(--m-disputado-fg)
+
+  ul
+    display: flex
+    flex-direction: column
+    gap: var(--space-1)
+    margin: 0
+    padding-left: var(--space-5)
+    font-size: var(--step--1)
+
+  code
+    font-family: var(--font-mono)
+    font-size: var(--step--2)
+
+  .editor__dica
+    color: inherit
+    opacity: 0.85
+
+.editor__achados-titulo
+  font-size: var(--step--1)
+
+.editor__botao--barrado
+  border-color: var(--m-disputado-bd)
+  background: var(--m-disputado-bg)
+  color: var(--m-disputado-fg)

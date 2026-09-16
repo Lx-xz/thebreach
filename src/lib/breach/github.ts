@@ -108,6 +108,26 @@ async function erroDeEscrita(response: Response, path: string): Promise<GithubAp
   return new GithubApiError(response.status, `Falha ao gravar ${path} (${response.status}).${sufixo}`);
 }
 
+/**
+ * Todos os arquivos do acervo, numa chamada só.
+ *
+ * `null` quando o GitHub corta a resposta (`truncated`): melhor a conferência
+ * se declarar indisponível do que acusar de quebrada uma referência que existe.
+ */
+export async function listarArvore(token: string): Promise<Set<string> | null> {
+  const url = `https://api.github.com/repos/${OWNER}/${REPO}/git/trees/${BRANCH}?recursive=1`;
+  const response = await fetch(url, { headers: headers(token) });
+  if (!response.ok) {
+    throw new GithubApiError(response.status, `Falha ao listar o acervo (${response.status}).`);
+  }
+  const payload = (await response.json()) as {
+    tree: Array<{ path: string; type: string }>;
+    truncated?: boolean;
+  };
+  if (payload.truncated) return null;
+  return new Set(payload.tree.filter((no) => no.type === 'blob').map((no) => no.path));
+}
+
 /** Lê um arquivo do acervo. `null` quando o arquivo não existe. */
 export async function lerArquivo(path: string, token: string): Promise<ArquivoLido | null> {
   const response = await fetch(`${contentsUrl(path)}?ref=${BRANCH}`, { headers: headers(token) });

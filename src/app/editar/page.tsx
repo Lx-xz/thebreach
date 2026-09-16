@@ -3,9 +3,19 @@
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { PageHead } from '@/components/content';
+import { Cabecalho } from '@/components/Cabecalho';
 import { DiffView } from '@/components/DiffView';
+import { Previa } from '@/components/Previa';
 import { useAppearance } from '@/components/AppearanceProvider';
-import { GithubApiError, gravarArquivo, lerArquivo, type Gravacao } from '@/lib/breach/github';
+import { definirCampo, hoje } from '@/lib/breach/cabecalho';
+import { conferirTexto } from '@/lib/breach/conferir';
+import {
+  GithubApiError,
+  gravarArquivo,
+  lerArquivo,
+  listarArvore,
+  type Gravacao,
+} from '@/lib/breach/github';
 import {
   apagarRascunho,
   gravarRascunho,
@@ -42,6 +52,11 @@ function Editor() {
   const [rascunhoAchado, setRascunhoAchado] = useState<Rascunho | null>(null);
   const [gravado, setGravado] = useState<Gravacao | null>(null);
   const [verDiff, setVerDiff] = useState(false);
+  const [insistindo, setInsistindo] = useState(false);
+
+  // `undefined` enquanto carrega; `null` quando a conferência não está
+  // disponível — o GitHub cortou a árvore, ou a chamada falhou.
+  const [arquivos, setArquivos] = useState<Set<string> | null | undefined>(undefined);
 
   const sujo = conteudo !== original;
 
@@ -51,6 +66,25 @@ function Editor() {
     const categoria = parseCategoryDir(path.split('/')[0] ?? '');
     return categoria ? categoria.slug : null;
   }, [path]);
+
+  /**
+   * O texto que de fato vai para o acervo.
+   *
+   * O CLAUDE.md do acervo manda atualizar a data em cada documento tocado, e o
+   * editor cumpre sozinho. Diff, conferência e `PUT` olham este mesmo texto, de
+   * modo que a data aparece no diff antes de gravar e nunca é surpresa. O
+   * carimbo só existe quando há mudança: abrir um documento não o suja.
+   */
+  const paraGravar = useMemo(
+    () => (sujo ? definirCampo(conteudo, 'Última atualização', hoje()) : conteudo),
+    [sujo, conteudo],
+  );
+
+  const achados = useMemo(
+    () => (arquivos ? conferirTexto(path, paraGravar, arquivos) : []),
+    [arquivos, path, paraGravar],
+  );
+  const barrado = achados.length > 0 && !insistindo;
 
   useEffect(() => {
     if (!path || !token) return undefined;
@@ -87,6 +121,23 @@ function Editor() {
       cancelado = true;
     };
   }, [path, token]);
+
+  // A lista de arquivos do acervo, buscada uma vez: serve à conferência e à
+  // ilustração de abertura da prévia.
+  useEffect(() => {
+    if (!token) return undefined;
+    let cancelado = false;
+    listarArvore(token)
+      .then((lista) => {
+        if (!cancelado) setArquivos(lista);
+      })
+      .catch(() => {
+        if (!cancelado) setArquivos(null);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [token]);
 
   // O rascunho só é escrito, nunca apagado aqui: depois de um conflito ele é a
   // única cópia do que foi digitado, e apagá-lo por conta própria perderia tudo.
@@ -129,9 +180,17 @@ function Editor() {
     );
   }
 
+  /** Uma mudança no texto, venha da área de texto ou do formulário. */
+  const mudar = (novo: string): void => {
+    setConteudo(novo);
+    setGravado(null);
+    setInsistindo(false);
+  };
+
   const enviar = async (shaAlvo: string): Promise<void> => {
     const texto = mensagem.trim();
     if (!texto) return;
+    const enviado = paraGravar;
     setGravacao('enviando');
     setErro('');
     setGravado(null);
@@ -139,17 +198,20 @@ function Editor() {
     try {
       const feito = await gravarArquivo(
         path,
-        conteudo,
+        enviado,
         shaAlvo,
         prefixo ? `${prefixo}: ${texto}` : texto,
         token,
       );
-      setOriginal(conteudo);
+      // O texto da tela passa a ser o que foi gravado, com a data já carimbada.
+      setConteudo(enviado);
+      setOriginal(enviado);
       setSha(feito.sha);
       setMensagem('');
       setRemoto(null);
       setRascunhoAchado(null);
       setVerDiff(false);
+      setInsistindo(false);
       apagarRascunho(path);
       setGravado(feito);
       setGravacao('parada');
@@ -213,7 +275,7 @@ function Editor() {
                     type="button"
                     className="editor__botao"
                     onClick={() => {
-                      setConteudo(rascunhoAchado.conteudo);
+                      mudar(rascunhoAchado.conteudo);
                       setMensagem(rascunhoAchado.mensagem);
                       setRascunhoAchado(null);
                     }}
@@ -234,19 +296,21 @@ function Editor() {
               </div>
             ) : null}
 
-            <textarea
-              className="editor__area"
-              value={conteudo}
-              onChange={(event) => {
-                setConteudo(event.target.value);
-                setGravado(null);
-              }}
-              spellCheck
-              aria-label={`Markdown de ${path}`}
-              // `readOnly` e não `disabled`: no telefone, desabilitar o campo
-              // fecha o teclado e perde a posição da rolagem.
-              readOnly={enviando}
-            />
+            <Cabecalho bruto={conteudo} onChange={mudar} somenteLeitura={enviando} />
+
+            <div className="editor__bancada">
+              <textarea
+                className="editor__area"
+                value={conteudo}
+                onChange={(event) => mudar(event.target.value)}
+                spellCheck
+                aria-label={`Markdown de ${path}`}
+                // `readOnly` e não `disabled`: no telefone, desabilitar o campo
+                // fecha o teclado e perde a posição da rolagem.
+                readOnly={enviando}
+              />
+              <Previa bruto={paraGravar} path={path} arquivos={arquivos ?? null} />
+            </div>
 
             {gravacao === 'conflito' && remoto ? (
               <div className="editor__conflito">
@@ -256,7 +320,7 @@ function Editor() {
                 </p>
                 <DiffView
                   antes={remoto.conteudo}
-                  depois={conteudo}
+                  depois={paraGravar}
                   rotulo={{ antes: 'no GitHub agora', depois: 'na sua tela' }}
                 />
                 <div className="editor__acoes">
@@ -278,6 +342,27 @@ function Editor() {
               </div>
             ) : null}
 
+            {achados.length ? (
+              <div className="editor__achados">
+                <p className="editor__achados-titulo">
+                  {achados.length === 1
+                    ? 'Uma referência aponta para o vazio:'
+                    : `${achados.length} referências apontam para o vazio:`}
+                </p>
+                <ul>
+                  {achados.map((achado) => (
+                    <li key={achado.alvo}>
+                      <code>{achado.escrita}</code> → <code>{achado.alvo}</code> não existe
+                    </li>
+                  ))}
+                </ul>
+                <p className="editor__dica">
+                  É o mesmo critério que derruba a conferência do acervo. Se o documento citado
+                  ainda vai ser criado, o segundo toque grava assim mesmo.
+                </p>
+              </div>
+            ) : null}
+
             <label className="editor__mensagem">
               <span className="editor__rotulo">O que entrou no acervo</span>
               <span className="editor__campo">
@@ -287,7 +372,7 @@ function Editor() {
                   value={mensagem}
                   onChange={(event) => setMensagem(event.target.value)}
                   placeholder="registra o porte da espécie"
-                  disabled={enviando}
+                  readOnly={enviando}
                 />
               </span>
             </label>
@@ -303,15 +388,15 @@ function Editor() {
               </button>
               <button
                 type="button"
-                className="editor__botao editor__botao--forte"
-                onClick={() => void enviar(sha)}
+                className={`editor__botao ${barrado ? 'editor__botao--barrado' : 'editor__botao--forte'}`}
+                onClick={() => (barrado ? setInsistindo(true) : void enviar(sha))}
                 disabled={!podeGravar}
               >
-                {enviando ? 'Gravando…' : 'Gravar no acervo'}
+                {enviando ? 'Gravando…' : barrado ? 'Gravar mesmo assim' : 'Gravar no acervo'}
               </button>
             </div>
 
-            {verDiff && sujo ? <DiffView antes={original} depois={conteudo} /> : null}
+            {verDiff && sujo ? <DiffView antes={original} depois={paraGravar} /> : null}
 
             {gravado ? (
               <p className="editor__gravado">
@@ -325,6 +410,13 @@ function Editor() {
 
             {!sujo && !gravado ? (
               <p className="editor__dica">Nada mudou ainda — o texto é igual ao do acervo.</p>
+            ) : null}
+
+            {arquivos === null ? (
+              <p className="editor__dica">
+                Conferência de referências indisponível: não deu para listar o acervo. O CI continua
+                conferindo depois do commit.
+              </p>
             ) : null}
           </>
         ) : null}
